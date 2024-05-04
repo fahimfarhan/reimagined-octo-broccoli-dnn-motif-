@@ -1,0 +1,24 @@
+pandas
+numpy
+matplotlib
+scipy
+shap
+scikit-learn
+skorch
+six
+hyperopt
+requests
+pyyaml
+Bio
+plotly
+Levenshtein
+# pytorch
+captum
+torch
+torchvision
+torchaudio
+torchsummary
+torcheval
+pydot
+pydotplus
+torchviz
