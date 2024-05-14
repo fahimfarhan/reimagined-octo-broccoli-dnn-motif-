@@ -12,9 +12,7 @@ import numpy as np
 
 import constants
 
-timber = logging.getLogger()
-logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
-
+from models import *
 
 # utils
 
@@ -70,64 +68,64 @@ def reverse_complement_dna_seqs(column: pd.Series) -> pd.Series:
   rc_column = pd.Series(tmp_list)
   return rc_column
 
-
-class CNN1D(nn.Module):
-  def __init__(self,
-               in_channel_num_of_nucleotides=4,
-               kernel_size_k_mer_motif=4,
-               dnn_size=256,
-               num_filters=1,
-               lstm_hidden_size=128,
-               *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.conv1d = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=num_filters,
-                            kernel_size=kernel_size_k_mer_motif, stride=2)
-    self.activation = nn.ReLU()
-    self.pooling = nn.MaxPool1d(kernel_size=kernel_size_k_mer_motif, stride=2)
-
-    self.flatten = nn.Flatten()
-    # linear layer
-
-    self.dnn2 = nn.Linear(in_features=14 * num_filters, out_features=dnn_size)
-    self.act2 = nn.Sigmoid()
-    self.dropout2 = nn.Dropout(p=0.2)
-
-    self.out = nn.Linear(in_features=dnn_size, out_features=1)
-    self.out_act = nn.Sigmoid()
-
-    pass
-
-  def forward(self, x):
-    timber.debug(constants.magenta + f"h0: {x}")
-    h = self.conv1d(x)
-    timber.debug(constants.green + f"h1: {h}")
-    h = self.activation(h)
-    timber.debug(constants.magenta + f"h2: {h}")
-    h = self.pooling(h)
-    timber.debug(constants.blue + f"h3: {h}")
-    timber.debug(constants.cyan + f"h4: {h}")
-
-    h = self.flatten(h)
-    timber.debug(constants.magenta + f"h5: {h},\n shape {h.shape}, size {h.size}")
-    h = self.dnn2(h)
-    timber.debug(constants.green + f"h6: {h}")
-
-    h = self.act2(h)
-    timber.debug(constants.blue + f"h7: {h}")
-
-    h = self.dropout2(h)
-    timber.debug(constants.cyan + f"h8: {h}")
-
-    h = self.out(h)
-    timber.debug(constants.magenta + f"h9: {h}")
-
-    h = self.out_act(h)
-    timber.debug(constants.green + f"h10: {h}")
-    # h = (h > 0.5).float()  # <---- should this go here?
-    # timber.debug(constants.green + f"h11: {h}")
-
-    return h
-
+#
+# class CNN1D(nn.Module):
+#   def __init__(self,
+#                in_channel_num_of_nucleotides=4,
+#                kernel_size_k_mer_motif=4,
+#                dnn_size=256,
+#                num_filters=1,
+#                lstm_hidden_size=128,
+#                *args, **kwargs):
+#     super().__init__(*args, **kwargs)
+#     self.conv1d = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=num_filters,
+#                             kernel_size=kernel_size_k_mer_motif, stride=2)
+#     self.activation = nn.ReLU()
+#     self.pooling = nn.MaxPool1d(kernel_size=kernel_size_k_mer_motif, stride=2)
+#
+#     self.flatten = nn.Flatten()
+#     # linear layer
+#
+#     self.dnn2 = nn.Linear(in_features=14 * num_filters, out_features=dnn_size)
+#     self.act2 = nn.Sigmoid()
+#     self.dropout2 = nn.Dropout(p=0.2)
+#
+#     self.out = nn.Linear(in_features=dnn_size, out_features=1)
+#     self.out_act = nn.Sigmoid()
+#
+#     pass
+#
+#   def forward(self, x):
+#     timber.debug(constants.magenta + f"h0: {x}")
+#     h = self.conv1d(x)
+#     timber.debug(constants.green + f"h1: {h}")
+#     h = self.activation(h)
+#     timber.debug(constants.magenta + f"h2: {h}")
+#     h = self.pooling(h)
+#     timber.debug(constants.blue + f"h3: {h}")
+#     timber.debug(constants.cyan + f"h4: {h}")
+#
+#     h = self.flatten(h)
+#     timber.debug(constants.magenta + f"h5: {h},\n shape {h.shape}, size {h.size}")
+#     h = self.dnn2(h)
+#     timber.debug(constants.green + f"h6: {h}")
+#
+#     h = self.act2(h)
+#     timber.debug(constants.blue + f"h7: {h}")
+#
+#     h = self.dropout2(h)
+#     timber.debug(constants.cyan + f"h8: {h}")
+#
+#     h = self.out(h)
+#     timber.debug(constants.magenta + f"h9: {h}")
+#
+#     h = self.out_act(h)
+#     timber.debug(constants.green + f"h10: {h}")
+#     # h = (h > 0.5).float()  # <---- should this go here?
+#     # timber.debug(constants.green + f"h11: {h}")
+#
+#     return h
+#
 
 class CustomDataset(Dataset):
   def __init__(self, dataframe):
@@ -266,14 +264,14 @@ def start():
   # test_loader = loader  # todo: load another dataset later
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CNN1D().to(device)
+  model = CNN1Dv2().to(device) # get_stackoverflow_model().to(device)
   m_criterion = nn.BCEWithLogitsLoss
   # optimizer = optim.Adam(model.parameters(), lr=0.001)
   m_optimizer = optim.Adam
 
   net = NeuralNetClassifier(
     model,
-    max_epochs=200,
+    max_epochs=50,
     criterion=m_criterion,
     optimizer=m_optimizer,
     lr=0.01,
