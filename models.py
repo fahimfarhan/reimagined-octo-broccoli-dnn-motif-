@@ -171,8 +171,8 @@ class CNN1Dv2(nn.Module):
 
     h = self.out(h)
     timber.debug(f"14 h.shape: {h.shape}")
-    h = self.out_act(h)
-    timber.debug(f"15 h.shape: {h.shape}")
+    # h = self.out_act(h)
+    # timber.debug(f"15 h.shape: {h.shape}")
     y = h
     return y
 
