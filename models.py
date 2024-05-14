@@ -99,12 +99,13 @@ def get_stackoverflow_model():
 #  v2
 class CNN1Dv2(nn.Module):
   def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=4, dnn_size=512, num_filters=1,
-               lstm_hidden_size=128, *args, **kwargs):
+               lstm_hidden_size=128, seq_len=64, *args, **kwargs):
     super().__init__(*args, **kwargs)
     pass
 
     # input / low level features extracting conv layer
-    self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides, kernel_size=4)
+    self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation0 = nn.ReLU()
     self.batch_norm0 = nn.BatchNorm1d(num_features=in_channel_num_of_nucleotides)
 
@@ -112,20 +113,26 @@ class CNN1Dv2(nn.Module):
     double_features = 2 * in_channel_num_of_nucleotides
 
     self.conv1d1 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=double_features,
-                             kernel_size=4, padding="same")
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation1 = nn.ReLU()
     self.batch_norm1 = nn.BatchNorm1d(num_features=double_features)
 
     # high level features extracting conv layer
     self.conv1d2 = nn.Conv1d(in_channels=double_features, out_channels=double_features,
-                             kernel_size=4, padding="same")
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation2 = nn.ReLU()
     self.batch_norm2 = nn.BatchNorm1d(num_features=double_features)
 
     # output layers
-    self.pooling = nn.MaxPool1d(kernel_size=2, stride=2) # batch, feat, seq
-    self.flatten = nn.Flatten() # batch, feat*seq
-    self.dnn = nn.Linear(240, dnn_size)
+    pooling_kernel_stride = 2
+    # pooking input seq_len = 64
+    self.pooling = nn.MaxPool1d(kernel_size=pooling_kernel_stride,
+                                stride=pooling_kernel_stride)  # batch, feat, seq
+    # pooling output seq_len = 64/ pks = 32
+    self.flatten = nn.Flatten()  # batch, feat*seq
+
+    new_seq_len = int(seq_len / pooling_kernel_stride)
+    self.dnn = nn.Linear(double_features * new_seq_len, dnn_size)  # 8 * 32
     # the stackoverflow answer stopped here. I  am adding the following layers. Maybe they'll come in handy with lstm
 
     self.dnn_act = nn.ReLU()
@@ -179,13 +186,15 @@ class CNN1Dv2(nn.Module):
 
 # v3
 class CnnLstm1D(nn.Module):
-  def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=4, dnn_size=512, num_filters=1,
-               lstm_hidden_size=128, *args, **kwargs):
+  def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=8, dnn_size=1024, num_filters=1,
+               lstm_hidden_size=128, seq_len=64, *args, **kwargs):
     super().__init__(*args, **kwargs)
     pass
 
     # input / low level features extracting conv layer
-    self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides, kernel_size=4)
+    self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
+    # padding = "same" to keep seq_len const for convenience
     self.activation0 = nn.ReLU()
     self.batch_norm0 = nn.BatchNorm1d(num_features=in_channel_num_of_nucleotides)
 
@@ -193,24 +202,28 @@ class CnnLstm1D(nn.Module):
     double_features = 2 * in_channel_num_of_nucleotides
 
     self.conv1d1 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=double_features,
-                             kernel_size=4, padding="same")
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation1 = nn.ReLU()
     self.batch_norm1 = nn.BatchNorm1d(num_features=double_features)
 
     # high level features extracting conv layer
     self.conv1d2 = nn.Conv1d(in_channels=double_features, out_channels=double_features,
-                             kernel_size=4, padding="same")
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation2 = nn.ReLU()
     self.batch_norm2 = nn.BatchNorm1d(num_features=double_features)
 
     # output layers
-    self.pooling = nn.MaxPool1d(kernel_size=2, stride=2) # batch, feat, seq
-    self.flatten = nn.Flatten() # batch, feat*seq
+    # input_seq_len = 64
+    pooling_kernel_stride = 2
+    self.pooling = nn.MaxPool1d(kernel_size=pooling_kernel_stride, stride=pooling_kernel_stride) # batch, feat, seq
+    # output seq_len = 64 / 2 = 32
+    self.flatten = nn.Flatten()  # batch, feat*seq
 
     # lstm
-    self.bidirectional_lstm = nn.LSTM(input_size=240, hidden_size=lstm_hidden_size, bidirectional=True)
-
-    self.dnn = nn.Linear(256, dnn_size)
+    self.bidirectional_lstm = nn.LSTM(input_size=double_features * int(seq_len / pooling_kernel_stride),
+                                      hidden_size=lstm_hidden_size, bidirectional=True)
+    lstm_output_shape = lstm_hidden_size * 2  # size1 = double_features * int(seq_len / pooling_kernel_stride)
+    self.dnn = nn.Linear(lstm_output_shape, dnn_size)
     # the stackoverflow answer stopped here. I  am adding the following layers. Maybe they'll come in handy with lstm
 
     self.dnn_act = nn.ReLU()
