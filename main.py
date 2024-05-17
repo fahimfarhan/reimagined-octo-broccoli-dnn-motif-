@@ -12,7 +12,9 @@ import numpy as np
 
 import constants
 
-from models import *
+# from models import *
+from modelsv2 import *
+
 
 # utils
 
@@ -264,7 +266,7 @@ def start():
   # test_loader = loader  # todo: load another dataset later
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CnnTDFLstm1Dv3().to(device) # get_stackoverflow_model().to(device)
+  model = CnnLstm1DNoBatchNormV2().to(device) # get_stackoverflow_model().to(device)
   m_criterion = nn.BCEWithLogitsLoss
   # optimizer = optim.Adam(model.parameters(), lr=0.001)
   m_optimizer = optim.Adam

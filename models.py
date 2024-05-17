@@ -66,6 +66,71 @@ class CNN1D(nn.Module):
     return h
 
 
+class CNN1DNoOutputActivation(nn.Module):
+  def __init__(self,
+               in_channel_num_of_nucleotides=4,
+               kernel_size_k_mer_motif=4,
+               dnn_size=1024,
+               num_filters=1,
+               lstm_hidden_size=128,
+               *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.conv1d = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=num_filters,
+                            kernel_size=kernel_size_k_mer_motif, stride=2)
+    self.activation = nn.ReLU()
+    self.pooling = nn.MaxPool1d(kernel_size=kernel_size_k_mer_motif, stride=2)
+
+    self.flatten = nn.Flatten()
+    # linear layer
+
+    self.dnn2 = nn.Linear(in_features=14 * num_filters, out_features=dnn_size)
+    self.act2 = nn.ReLU()
+    self.dropout2 = nn.Dropout(p=0.0)
+
+    self.out = nn.Linear(in_features=dnn_size, out_features=1)
+    # self.out_act = nn.ReLU()
+    # softmax 0.5
+    # sigmoid 0.5
+    # relu 0.5
+    # no output activation tr_acc = 71.5 %, tr_auc = 69%
+    #                     val_acc = 63%,   val_auc = 63%
+
+    # mid_activation ==> ReLU acc = 89%, auc = 64%
+    # no dropout tr_auc = 96%, auc = 72%
+    # dropout 0 ==> best auc = 77%, acc = 98%
+    #         .2  auc 65%, acc = 95%, .5 => auc = 80%, acc = 80%,
+    pass
+
+  def forward(self, x):
+    timber.debug(constants.magenta + f"h0: {x}")
+    h = self.conv1d(x)
+    timber.debug(constants.green + f"h1: {h}")
+    h = self.activation(h)
+    timber.debug(constants.magenta + f"h2: {h}")
+    h = self.pooling(h)
+    timber.debug(constants.blue + f"h3: {h}")
+    timber.debug(constants.cyan + f"h4: {h}")
+
+    h = self.flatten(h)
+    timber.debug(constants.magenta + f"h5: {h},\n shape {h.shape}, size {h.size}")
+    h = self.dnn2(h)
+    timber.debug(constants.green + f"h6: {h}")
+
+    h = self.act2(h)
+    timber.debug(constants.blue + f"h7: {h}")
+
+    h = self.dropout2(h)
+    timber.debug(constants.cyan + f"h8: {h}")
+
+    h = self.out(h)
+    timber.debug(constants.magenta + f"h9: {h}")
+
+    # h = self.out_act(h)
+    # timber.debug(constants.green + f"h10: {h}")
+    # h = (h > 0.5).float()  # <---- should this go here?
+    # timber.debug(constants.green + f"h11: {h}")
+
+    return h
 
 def get_stackoverflow_model():
   n_features = 4
