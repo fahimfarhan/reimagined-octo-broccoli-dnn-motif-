@@ -6,6 +6,7 @@ import constants
 # from models import TimeDistributed, ReduceSumLambdaLayer
 
 timber = logging.getLogger()
+# logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
 
 
@@ -67,8 +68,8 @@ class CNN1DNoOutputActivation(nn.Module):
 
     self.flatten = nn.Flatten()
     # linear layer
-
-    self.dnn2 = nn.Linear(in_features=14 * num_filters, out_features=dnn_size)
+    # todo: find why before: 64 --> 14, after 2000 --> 498
+    self.dnn2 = nn.Linear(in_features=498 * num_filters, out_features=dnn_size)
     self.act2 = nn.ReLU()
     self.dropout2 = nn.Dropout(p=0.0)
 
@@ -169,7 +170,6 @@ class CnnLstm1DNoBatchNorm(nn.Module):
     self.dropout = nn.Dropout(p=0.2)
 
     self.out = nn.Linear(in_features=dnn_size, out_features=1)
-    self.out_act = nn.Sigmoid()   # eta na dile valo perform kore! :?
     pass
 
   def forward(self, x):
@@ -210,16 +210,14 @@ class CnnLstm1DNoBatchNorm(nn.Module):
 
     h = self.out(h)
     timber.debug(f"15 h.shape: {h.shape}")
-    # h = self.out_act(h)  # just don't use any activation layer just because every tutorial uses it!
-    # timber.debug(f"16 h.shape: {h.shape}")
     y = h
     return y
 
 
 # closest to raju model
-class CnnLstm1DNoBatchNormV2(nn.Module):
+class CnnLstm1DNoBatchNormV2NoOutputActivation(nn.Module):
   def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=8, dnn_size=1024, num_filters=1,
-               lstm_hidden_size=128, seq_len=64, *args, **kwargs):
+               lstm_hidden_size=512, seq_len=64, *args, **kwargs):
     super().__init__(*args, **kwargs)
     pass
 
@@ -264,10 +262,9 @@ class CnnLstm1DNoBatchNormV2(nn.Module):
 
     self.dnn_act = nn.ReLU()
 
-    self.dropout = nn.Dropout(p=0.2)
+    self.dropout = nn.Dropout(p=0.0)
 
     self.out = nn.Linear(in_features=dnn_size, out_features=1)
-    self.out_act = nn.Sigmoid()   # eta na dile valo perform kore! :?
     pass
 
   def forward(self, x):
@@ -308,12 +305,10 @@ class CnnLstm1DNoBatchNormV2(nn.Module):
 
     h = self.out(h)
     timber.debug(f"15 h.shape: {h.shape}")
-    # h = self.out_act(h)  # just don't use any activation layer just because every tutorial uses it!
-    # timber.debug(f"16 h.shape: {h.shape}")
     y = h
     return y
 
-class CnnLstm1DNoBatchNormV3(nn.Module):
+class CnnLstm1DNoBatchNormV3NoActivation(nn.Module):
   def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=8, dnn_size=1024, num_filters=1,
                lstm_hidden_size=128, seq_len=64, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -351,7 +346,7 @@ class CnnLstm1DNoBatchNormV3(nn.Module):
     self.flatten = TimeDistributed(nn.Flatten())  # batch, feat*seq_len_from_previous_layer = 8*8 = 64
     # 128, 8, 16 --> TimeDistributed(Flatten(ReducedSum)) --> [128, 8]
     # lstm
-    lstm_input_size = output_of_pooling2  # 16
+    lstm_input_size = 500 #todo why 500? # output_of_pooling2  # 16
     self.bidirectional_lstm = nn.LSTM(input_size=lstm_input_size,
                                       hidden_size=lstm_hidden_size, bidirectional=True)
     lstm_output_shape = lstm_hidden_size * 2  # size1 = double_features * int(seq_len / pooling_kernel_stride)
@@ -360,10 +355,9 @@ class CnnLstm1DNoBatchNormV3(nn.Module):
 
     self.dnn_act = nn.ReLU()
 
-    self.dropout = nn.Dropout(p=0.2)
+    self.dropout = nn.Dropout(p=0.0)
 
     self.out = nn.Linear(in_features=dnn_size, out_features=1)
-    self.out_act = nn.Sigmoid()   # eta na dile valo perform kore! :?
     pass
 
   def forward(self, x):
@@ -404,8 +398,6 @@ class CnnLstm1DNoBatchNormV3(nn.Module):
 
     h = self.out(h)
     timber.debug(f"15 h.shape: {h.shape}")
-    # h = self.out_act(h)  # just don't use any activation layer just because every tutorial uses it!
-    # timber.debug(f"16 h.shape: {h.shape}")
     y = h
     return y
 

@@ -1,17 +1,10 @@
-import logging
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
+import numpy as np
 import pandas as pd
+import torch.optim as optim
 from sklearn import metrics
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring
 from torch.utils.data import DataLoader, Dataset
-import numpy as np
-
-import constants
-from models import CnnTDFLstm1Dv2
 
 # from models import *
 from modelsv2 import *
@@ -247,7 +240,7 @@ def get_callbacks() -> list:
 
 def start():
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CnnTDFLstm1Dv2().to(device) # get_stackoverflow_model().to(device)
+  model = CnnLstm1DNoBatchNormV3NoActivation().to(device)  # get_stackoverflow_model().to(device)
   # df = pd.read_csv("data64.csv")  # use this line
   df = pd.read_csv("data2000random.csv")
 
