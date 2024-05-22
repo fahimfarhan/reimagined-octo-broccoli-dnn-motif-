@@ -1,0 +1,7 @@
+"""
+  batch norm       seq_len   output
+     y               64       acc = 90%
+     y               2000     acc = 90%
+     n               2000     acc = 60%
+     n                64      acc = 100%
+"""

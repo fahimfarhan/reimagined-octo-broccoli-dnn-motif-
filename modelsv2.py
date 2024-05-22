@@ -313,7 +313,6 @@ class CnnLstm1DNoBatchNormV2(nn.Module):
     y = h
     return y
 
-# closest to raju model
 class CnnLstm1DNoBatchNormV3(nn.Module):
   def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=8, dnn_size=1024, num_filters=1,
                lstm_hidden_size=128, seq_len=64, *args, **kwargs):

@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 import numpy as np
 
 import constants
+from models import CnnTDFLstm1Dv2
 
 # from models import *
 from modelsv2 import *
@@ -245,9 +246,13 @@ def get_callbacks() -> list:
 
 
 def start():
-
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  model = CnnTDFLstm1Dv2().to(device) # get_stackoverflow_model().to(device)
   # df = pd.read_csv("data64.csv")  # use this line
-  df = pd.read_csv("data64random.csv")
+  df = pd.read_csv("data2000random.csv")
+
+
+
   X = df["Sequence"]
   y = df["class"]
 
@@ -265,8 +270,10 @@ def start():
   # train_loader = loader
   # test_loader = loader  # todo: load another dataset later
 
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CnnLstm1DNoBatchNormV2().to(device) # get_stackoverflow_model().to(device)
+
+
+
+  # model = CnnLstm1DNoBatchNormV2().to(device) # get_stackoverflow_model().to(device)
   m_criterion = nn.BCEWithLogitsLoss
   # optimizer = optim.Adam(model.parameters(), lr=0.001)
   m_optimizer = optim.Adam
