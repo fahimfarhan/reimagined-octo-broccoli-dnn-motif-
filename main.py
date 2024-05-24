@@ -240,9 +240,9 @@ def get_callbacks() -> list:
 
 def start():
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CnnLstm1DNoBatchNormV3NoActivation().to(device)  # get_stackoverflow_model().to(device)
+  model = CnnLstm1DNoBatchNormV4NoActivationLeakyRelu(seq_len=8000).to(device)  # get_stackoverflow_model().to(device)
   # df = pd.read_csv("data64.csv")  # use this line
-  df = pd.read_csv("data2000random.csv")
+  df = pd.read_csv("data8000random.csv")
 
 
 
@@ -269,14 +269,14 @@ def start():
   # model = CnnLstm1DNoBatchNormV2().to(device) # get_stackoverflow_model().to(device)
   m_criterion = nn.BCEWithLogitsLoss
   # optimizer = optim.Adam(model.parameters(), lr=0.001)
-  m_optimizer = optim.Adam
+  m_optimizer = optim.NAdam
 
   net = NeuralNetClassifier(
     model,
     max_epochs=50,
     criterion=m_criterion,
     optimizer=m_optimizer,
-    lr=0.01,
+    lr=0.001,
     # decay=0.01,
     # momentum=0.9,
 

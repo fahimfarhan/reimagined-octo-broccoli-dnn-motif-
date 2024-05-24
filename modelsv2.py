@@ -310,7 +310,7 @@ class CnnLstm1DNoBatchNormV2NoOutputActivation(nn.Module):
 
 class CnnLstm1DNoBatchNormV3NoActivation(nn.Module):
   def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=8, dnn_size=1024, num_filters=1,
-               lstm_hidden_size=128, seq_len=64, *args, **kwargs):
+               lstm_hidden_size=128, seq_len=-1, *args, **kwargs):
     super().__init__(*args, **kwargs)
     pass
 
@@ -346,7 +346,7 @@ class CnnLstm1DNoBatchNormV3NoActivation(nn.Module):
     self.flatten = TimeDistributed(nn.Flatten())  # batch, feat*seq_len_from_previous_layer = 8*8 = 64
     # 128, 8, 16 --> TimeDistributed(Flatten(ReducedSum)) --> [128, 8]
     # lstm
-    lstm_input_size = 500 #todo why 500? # output_of_pooling2  # 16
+    lstm_input_size = int(seq_len / 4)  # todo why 500? # output_of_pooling2  # 16. seq_len 64 => lstn_is = 16. 2000 -> 500, 8000 -> 2000. therefore 4N => N
     self.bidirectional_lstm = nn.LSTM(input_size=lstm_input_size,
                                       hidden_size=lstm_hidden_size, bidirectional=True)
     lstm_output_shape = lstm_hidden_size * 2  # size1 = double_features * int(seq_len / pooling_kernel_stride)
@@ -354,6 +354,100 @@ class CnnLstm1DNoBatchNormV3NoActivation(nn.Module):
     # the stackoverflow answer stopped here. I  am adding the following layers. Maybe they'll come in handy with lstm
 
     self.dnn_act = nn.ReLU()
+
+    self.dropout = nn.Dropout(p=0.0)
+
+    self.out = nn.Linear(in_features=dnn_size, out_features=1)
+    pass
+
+  def forward(self, x):
+    h = self.conv1d0(x)
+    timber.debug(f"0 h.shape: {h.shape}")
+    h = self.activation0(h)
+    timber.debug(f"1 h.shape: {h.shape}")
+    h = self.pooling0(h)
+    timber.debug(f"2 h.shape: {h.shape}")
+
+    h = self.conv1d1(h)
+    timber.debug(f"3 h.shape: {h.shape}")
+    h = self.activation1(h)
+    timber.debug(f"4 h.shape: {h.shape}")
+    h = self.pooling1(h)
+    timber.debug(f"5 h.shape: {h.shape}")
+
+    h = self.conv1d2(h)
+    timber.debug(f"6 h.shape: {h.shape}")
+    h = self.activation2(h)
+    timber.debug(f"7 h.shape: {h.shape}")
+    h = self.pooling2(h)
+    timber.debug(f"8 h.shape: {h.shape}")
+
+    timber.debug(f"9 h.shape: {h.shape}")
+    h = self.flatten(h)
+    timber.debug(f"10 h.shape: {h.shape}")
+
+    h, dont_care = self.bidirectional_lstm(h)  # cz the output is a tuple
+    timber.debug(f"11 h.shape: {h.shape}")
+
+    h = self.dnn(h)
+    timber.debug(f"12 h.shape: {h.shape}")
+    h = self.dnn_act(h)
+    timber.debug(f"13 h.shape: {h.shape}")
+    h = self.dropout(h)
+    timber.debug(f"14 h.shape: {h.shape}")
+
+    h = self.out(h)
+    timber.debug(f"15 h.shape: {h.shape}")
+    y = h
+    return y
+
+
+class CnnLstm1DNoBatchNormV4NoActivationLeakyRelu(nn.Module):
+  def __init__(self, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=8, dnn_size=1024, num_filters=1,
+               lstm_hidden_size=128, seq_len=-1, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    pass
+
+    # input / low level features extracting conv layer
+    self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
+    # padding = "same" to keep seq_len const for convenience
+    self.activation0 = nn.LeakyReLU()
+    pooling_kernel_stride = 2
+    input_of_pooling0 = seq_len # let this = 64
+    self.pooling0 = nn.MaxPool1d(kernel_size=pooling_kernel_stride, stride=pooling_kernel_stride)
+    output_of_pooling0 = int( input_of_pooling0 / pooling_kernel_stride )  # 32
+    # mid level features extracting conv layer
+    double_features = 2 * in_channel_num_of_nucleotides
+
+    self.conv1d1 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=double_features,
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
+    self.activation1 = nn.LeakyReLU()
+
+    input_of_pooling1 = output_of_pooling0 # 32
+    self.pooling1 = nn.MaxPool1d(kernel_size=pooling_kernel_stride, stride=pooling_kernel_stride)
+    output_of_pooling1 = int(input_of_pooling1 / pooling_kernel_stride) # 16
+    # high level features extracting conv layer
+    #  input seq_LEN = 16
+    self.conv1d2 = nn.Conv1d(in_channels=double_features, out_channels=double_features,
+                             kernel_size=kernel_size_k_mer_motif, padding="same")
+    self.activation2 = nn.LeakyReLU()
+
+    # output layers
+    input_of_pooling2 = output_of_pooling1 # 16
+    self.pooling2 = ReduceSumLambdaLayer(m_dim=1)   # nn.MaxPool1d(kernel_size=pooling_kernel_stride, stride=pooling_kernel_stride) # batch, feat, seq
+    output_of_pooling2 = input_of_pooling2 # 16 // todo: fix size
+    self.flatten = TimeDistributed(nn.Flatten())  # batch, feat*seq_len_from_previous_layer = 8*8 = 64
+    # 128, 8, 16 --> TimeDistributed(Flatten(ReducedSum)) --> [128, 8]
+    # lstm
+    lstm_input_size = int(seq_len / 4)  # todo why 500? # output_of_pooling2  # 16. seq_len 64 => lstn_is = 16. 2000 -> 500, 8000 -> 2000. therefore 4N => N
+    self.bidirectional_lstm = nn.LSTM(input_size=lstm_input_size,
+                                      hidden_size=lstm_hidden_size, bidirectional=True)
+    lstm_output_shape = lstm_hidden_size * 2  # size1 = double_features * int(seq_len / pooling_kernel_stride)
+    self.dnn = nn.Linear(lstm_output_shape, dnn_size)
+    # the stackoverflow answer stopped here. I  am adding the following layers. Maybe they'll come in handy with lstm
+
+    self.dnn_act = nn.LeakyReLU()
 
     self.dropout = nn.Dropout(p=0.0)
 
