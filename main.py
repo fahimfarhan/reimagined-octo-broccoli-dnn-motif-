@@ -279,7 +279,7 @@ def start():
     # momentum=0.9,
 
     device=device,
-    classes=["no_mqtl", "yes_mqtl"],
+    # classes=["no_mqtl", "yes_mqtl"],
     verbose=True,
     callbacks=get_callbacks()
   )
