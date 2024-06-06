@@ -6,6 +6,7 @@ from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring
 from torch.utils.data import DataLoader, Dataset
 
+from _01_cnn_attention_models import CnnAttentionModel
 # from models import *
 from modelsv2 import *
 
@@ -239,10 +240,13 @@ def get_callbacks() -> list:
 
 
 def start():
+  seq_len = 2000
+
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CnnLstm1DNoBatchNormV4NoActivationLeakyRelu(seq_len=8000).to(device)  # get_stackoverflow_model().to(device)
+  # model = CnnLstm1DNoBatchNormV4NoActivationLeakyRelu(seq_len=8000).to(device)  # get_stackoverflow_model().to(device)
+  model = CnnAttentionModel(seq_len=seq_len).to(device)
   # df = pd.read_csv("data64.csv")  # use this line
-  df = pd.read_csv("data8000random.csv")
+  df = pd.read_csv(f"data{seq_len}random.csv")
 
 
 
@@ -273,10 +277,10 @@ def start():
 
   net = NeuralNetClassifier(
     model,
-    max_epochs=50,
+    max_epochs=100,
     criterion=m_criterion,
     optimizer=m_optimizer,
-    lr=0.001,
+    lr=0.005,
     # decay=0.01,
     # momentum=0.9,
 
