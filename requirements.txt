@@ -4,7 +4,7 @@ matplotlib
 scipy
 shap
 scikit-learn
-skorch
+skorch==1.0.0
 six
 hyperopt
 requests
@@ -14,7 +14,7 @@ plotly
 Levenshtein
 # pytorch
 captum
-torch
+torch==2.3.0
 torchvision
 torchaudio
 torchsummary
