@@ -1,18 +1,15 @@
-import logging
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
+import numpy as np
 import pandas as pd
+import torch.optim as optim
 from sklearn import metrics
 from skorch import NeuralNetClassifier
 from skorch.callbacks import EpochScoring
 from torch.utils.data import DataLoader, Dataset
-import numpy as np
 
-import constants
+from _01_cnn_attention_models import CnnAttentionModel
+# from models import *
+from modelsv2 import *
 
-from models import *
 
 # utils
 
@@ -243,9 +240,16 @@ def get_callbacks() -> list:
 
 
 def start():
+  seq_len = 2000
 
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  # model = CnnLstm1DNoBatchNormV4NoActivationLeakyRelu(seq_len=8000).to(device)  # get_stackoverflow_model().to(device)
+  model = CnnAttentionModel(seq_len=seq_len).to(device)
   # df = pd.read_csv("data64.csv")  # use this line
-  df = pd.read_csv("data64random.csv")
+  df = pd.read_csv(f"data{seq_len}random.csv")
+
+
+
   X = df["Sequence"]
   y = df["class"]
 
@@ -263,18 +267,20 @@ def start():
   # train_loader = loader
   # test_loader = loader  # todo: load another dataset later
 
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model = CnnTDFLstm1Dv3().to(device) # get_stackoverflow_model().to(device)
+
+
+
+  # model = CnnLstm1DNoBatchNormV2().to(device) # get_stackoverflow_model().to(device)
   m_criterion = nn.BCEWithLogitsLoss
   # optimizer = optim.Adam(model.parameters(), lr=0.001)
-  m_optimizer = optim.Adam
+  m_optimizer = optim.NAdam
 
   net = NeuralNetClassifier(
     model,
-    max_epochs=50,
+    max_epochs=100,
     criterion=m_criterion,
     optimizer=m_optimizer,
-    lr=0.01,
+    lr=0.005,
     # decay=0.01,
     # momentum=0.9,
 

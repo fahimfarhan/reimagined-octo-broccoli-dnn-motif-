@@ -74,8 +74,8 @@ string insertMotifRandom(string input, const string& motif) {
 
 string insertMotif(string input, const string& motif) {
 //    return insertMotifMiddle(input, motif);
-    return insertMotifStartOrEnd(input, motif);
-//    return insertMotifRandom(input, motif);
+//    return insertMotifStartOrEnd(input, motif);
+    return insertMotifRandom(input, motif);
 }
 
 void start() {

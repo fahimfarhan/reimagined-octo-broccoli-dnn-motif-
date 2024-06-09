@@ -1,0 +1,15 @@
+"""
+  batch norm       seq_len   output
+     y               64       acc = 90%
+     y               2000     acc = 90%
+     n               2000     acc = 60%
+     n                64      acc = 100%
+"""
+
+
+    # todo: find why before: 64 --> 14, after 2000 --> 498
+"""
+CNN1DNoOutputActivation                                   acc 100%
+CnnLstm1DNoBatchNormV2NoOutputActivation (Raju like)      acc  50%
+CnnLstm1DNoBatchNormV3NoActivation  (Raju like Transpose) acc 100%
+"""
