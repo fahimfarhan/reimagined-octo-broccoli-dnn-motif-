@@ -171,13 +171,13 @@ class DNAClassifierModel(nn.Module):
     return y
 
   def forward(self, input_ids: torch.tensor, attention_mask: torch.tensor, token_type_ids):
-
+    """
     # torch.Size([128, 1, 512]) --> [128, 512]
     input_ids = input_ids.squeeze(dim=1).to(DEVICE)
     # torch.Size([16, 1, 512]) --> [16, 512]
     attention_mask = attention_mask.squeeze(dim=1).to(DEVICE)
     token_type_ids = token_type_ids.squeeze(dim=1).to(DEVICE)
-
+    """
     bert_output: BaseModelOutputWithPoolingAndCrossAttentions = self.bert_model(
       input_ids=input_ids,
       attention_mask=attention_mask,
@@ -214,6 +214,17 @@ class DNABERTDataset(Dataset):
       tokens, return_tensors='pt', is_split_into_words=True, padding='max_length',
       truncation=True, max_length=512
     )
+    # torch.Size([128, 1, 512]) --> [128, 512]
+    # torch.Size([16, 1, 512]) --> [16, 512]
+    # encoded_input_x_2d = [ (key, value.squeeze(dim=1).to(DEVICE) ) for (key, value) in encoded_input_x_3d.items() ]
+    input_ids: torch.tensor = encoded_input_x["input_ids"]
+    token_type_ids: torch.tensor = encoded_input_x["token_type_ids"]
+    attention_mask: torch.tensor = encoded_input_x["attention_mask"]
+
+    # encoded_input_x["input_ids"] = input_ids.squeeze(dim=1).to(DEVICE)
+    # encoded_input_x["token_type_ids"] = token_type_ids.squeeze(dim=1).to(DEVICE)
+    # encoded_input_x["attention_mask"] = attention_mask.squeeze(dim=1).to(DEVICE)
+    encoded_input_x = {key: val.squeeze() for key, val in encoded_input_x.items()}
     return encoded_input_x, label
 
 
