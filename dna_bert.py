@@ -318,7 +318,7 @@ def get_callbacks() -> list:
 
 
 def start():
-  df = pd.read_csv("data64random.csv")
+  df = pd.read_csv("data8000random.csv")
   # dataset = DNABERTDataset(df, bert_tokenizer)
 
   train_data, temp_data = train_test_split(df, test_size=0.2, random_state=42)
