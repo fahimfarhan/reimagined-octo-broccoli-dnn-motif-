@@ -1,3 +1,4 @@
+accelerate  # required by HayenaDNA
 pandas
 numpy
 matplotlib
