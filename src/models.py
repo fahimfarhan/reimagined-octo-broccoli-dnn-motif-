@@ -11,6 +11,7 @@ class SimpleCNN1DmQtlClassification(nn.Module):
                kernel_size_k_mer_motif=4,
                num_filters=1,
                lstm_hidden_size=128,
+               dnn_size = 512,
                *args,
                **kwargs
                ):
@@ -25,12 +26,12 @@ class SimpleCNN1DmQtlClassification(nn.Module):
 
     self.flatten = nn.Flatten()
 
-    dnn_size = int(seq_len / kernel_size_k_mer_motif) * 2 # two because forward_sequence, and backward_sequence
-    self.dnn = nn.Linear(in_features=dnn_size, out_features=1)
+    dnn_in_features = int(seq_len / kernel_size_k_mer_motif) * 2 # two because forward_sequence, and backward_sequence
+    self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
     self.dnn_act = nn.ReLU(inplace=True)
     self.dropout = nn.Dropout(p=0.0)
 
-    self.out = nn.Linear(in_features=1, out_features=1)
+    self.out = nn.Linear(in_features=dnn_size, out_features=1)
     self.sigmoid = torch.sigmoid
     pass
 
@@ -65,7 +66,7 @@ class SimpleCNN1DmQtlClassification(nn.Module):
     h = self.dnn(h)
     timber.debug(mycolors.magenta + f"6{ h.shape = }")
     h = self.dnn_act(h)
-    timber.debug(mycolors.magenta + f"6{ h.shape = }")
+    timber.debug(mycolors.magenta + f"7{ h.shape = }")
     h = self.dropout(h)
     timber.debug(mycolors.magenta + f"8{ h.shape = }")
     h = self.out(h)
