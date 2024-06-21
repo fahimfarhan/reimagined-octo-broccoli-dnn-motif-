@@ -13,10 +13,10 @@ from models import SimpleCNN1DmQtlClassification
 import mycolors
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 4000
+WINDOW = 8000
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = True
+DEBUG = False
 
 
 def resize_and_insert_motif_if_debug(input: str) -> str:
@@ -73,7 +73,7 @@ def start():
   tv_dataset = TrainValidDataset(train_ds=ds_train, valid_ds=ds_val)
   test_dataset = TestDataset(test_ds=ds_test)
 
-  m_optimizer = torch.optim.Adam  # (pytorch_model.parameters(), lr=1e-4, weight_decay=1e-5)
+  m_optimizer = torch.optim.NAdam  # (pytorch_model.parameters(), lr=1e-4, weight_decay=1e-5)
   m_loss = nn.BCEWithLogitsLoss()  # This version is more numerically stable than using a plain Sigmoid followed by a BCELoss as, by combining the operations into one layer, we take advantage of the log-sum-exp trick for numerical stability. (ref = https://pytorch.org/docs/stable/generated/torch.nn.BCEWithLogitsLoss.html)
   device = torch.device(
     "cuda:0" if torch.cuda.is_available()
@@ -91,14 +91,19 @@ def start():
   #   # print(f"{ output = } , { label = }")
   #   timber.info(mycolors.magenta + f"{ohe[0].shape = }, { label.shape = }, { output.shape = }")
 
+  params = {
+    "optimizer__weight_decay": 0.1,
+    "optimizer__momentum" : 0.9,
+  }
+
   net = MQtlNeuralNetClassifier(
     pytorch_model,
     max_epochs=10,
     criterion=m_loss,
     optimizer=m_optimizer,
     lr=0.005,
-    # decay=0.01,
-    # momentum=0.9,
+    optimizer__weight_decay=1e-5,   # this is the correct way of passing the
+    optimizer__momentum_decay=0.9,  # weight_decay, momentum_decay etc to NAdam optimizer
     batch_size=m_batch_size,
     device=device,
     classes=["no_mqtl", "yes_mqtl"],

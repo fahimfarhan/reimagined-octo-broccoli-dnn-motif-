@@ -9,9 +9,9 @@ class SimpleCNN1DmQtlClassification(nn.Module):
                seq_len,
                in_channel_num_of_nucleotides=4,
                kernel_size_k_mer_motif=4,
-               num_filters=1,
+               num_filters=32,
                lstm_hidden_size=128,
-               dnn_size = 512,
+               dnn_size = 256,
                *args,
                **kwargs
                ):
@@ -24,9 +24,11 @@ class SimpleCNN1DmQtlClassification(nn.Module):
     self.seq_layer_backward = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                         kernel_size_k_mer_motif)
 
+    # self.conv_seq_0 = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif)
+
     self.flatten = nn.Flatten()
 
-    dnn_in_features = int(seq_len / kernel_size_k_mer_motif) * 2 # two because forward_sequence, and backward_sequence
+    dnn_in_features = num_filters * int(seq_len / kernel_size_k_mer_motif) * 2 # two because forward_sequence, and backward_sequence
     self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
     self.dnn_act = nn.ReLU(inplace=True)
     self.dropout = nn.Dropout(p=0.0)
