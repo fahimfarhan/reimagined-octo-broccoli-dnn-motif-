@@ -27,7 +27,8 @@ def one_hot_e(dna_seq: str) -> np.ndarray:
 
   forward_list: list = [mydict[dna_seq[i]] for i in range(0, size_of_a_seq)]
   encoded = np.asarray(forward_list)
-  return encoded
+  encoded_transposed = encoded.transpose()  # todo: Needs review
+  return encoded_transposed
 
 
 def one_hot_e_column(column: pd.Series) -> np.ndarray:
@@ -137,6 +138,18 @@ class MyDataSet(Dataset):
     return self.len
 
   def __getitem__(self, idx):
+    seq, label = self.X.values[idx], self.y.values[idx]
+    seq_rc = reverse_complement_dna_seq(seq)
+    ohe_seq = one_hot_e(dna_seq=seq)
+    # print(f"shape fafafa = { ohe_seq.shape = }")
+    ohe_seq_rc = one_hot_e(dna_seq=seq_rc)
+
+    label_number = label * 1.0
+    label_np_array = np.asarray([label_number])
+    # return ohe_seq, ohe_seq_rc, label
+    return [ohe_seq, ohe_seq_rc], label_np_array
+
+  def __getitem_v1__(self, idx):
     seq, label = self.X.values[idx], self.y.values[idx]
     # seq_rc = reverse_complement_dna_seq(seq)
     ohe_seq = one_hot_e(dna_seq=seq).transpose()  # todo: Needs review

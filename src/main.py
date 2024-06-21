@@ -30,7 +30,7 @@ def resize_and_insert_motif_if_debug(input: str) -> str:
   rand_pos = random.randrange(start, (end - len(DEBUG_MOTIF)) )
   random_end = rand_pos + len(DEBUG_MOTIF)
   output = input[start: rand_pos] + DEBUG_MOTIF + input[random_end: end]
-  print(f"{start = }, { rand_pos = }, { random_end = }, { end = }, { len(DEBUG_MOTIF) = }")
+  # print(f"{start = }, { rand_pos = }, { random_end = }, { end = }, { len(DEBUG_MOTIF) = }")
   assert len(output) == WINDOW
   return output
 
@@ -48,7 +48,7 @@ def get_dataframe() -> pd.DataFrame:
 def start():
   df: pd.DataFrame = get_dataframe()
   for seq in df["sequence"]:
-    print(f"{len(seq)}")
+    # print(f"{len(seq)}")
     assert (len(seq) == WINDOW)
 
   # timber.debug(msg=df.head())
@@ -73,8 +73,8 @@ def start():
   tv_dataset = TrainValidDataset(train_ds=ds_train, valid_ds=ds_val)
   test_dataset = TestDataset(test_ds=ds_test)
 
-  m_optimizer = torch.optim.NAdam  # (pytorch_model.parameters(), lr=1e-4, weight_decay=1e-5)
-  m_loss = nn.BCEWithLogitsLoss()
+  m_optimizer = torch.optim.Adam  # (pytorch_model.parameters(), lr=1e-4, weight_decay=1e-5)
+  m_loss = nn.BCEWithLogitsLoss()  # This version is more numerically stable than using a plain Sigmoid followed by a BCELoss as, by combining the operations into one layer, we take advantage of the log-sum-exp trick for numerical stability. (ref = https://pytorch.org/docs/stable/generated/torch.nn.BCEWithLogitsLoss.html)
   device = torch.device(
     "cuda:0" if torch.cuda.is_available()
     else "cpu"
@@ -85,28 +85,28 @@ def start():
   m_batch_size = 16
 
   # for epoch in range(5):
-  for batch in DataLoader(ds_train, batch_size=m_batch_size):
-    ohe, label = batch
-    output = pytorch_model(ohe)
-    # print(f"{ output = } , { label = }")
-    timber.info(mycolors.magenta + f"{ohe.shape = }, { label.shape = }, { output.shape = }")
+  # for batch in DataLoader(ds_train, batch_size=m_batch_size):
+  #   ohe, label = batch
+  #   output = pytorch_model(ohe)
+  #   # print(f"{ output = } , { label = }")
+  #   timber.info(mycolors.magenta + f"{ohe[0].shape = }, { label.shape = }, { output.shape = }")
 
-  # net = MQtlNeuralNetClassifier(
-  #   pytorch_model,
-  #   max_epochs=5,
-  #   criterion=m_loss,
-  #   optimizer=m_optimizer,
-  #   lr=0.01,
-  #   # decay=0.01,
-  #   # momentum=0.9,
-  #   batch_size=m_batch_size,
-  #   device=device,
-  #   classes=["no_mqtl", "yes_mqtl"],
-  #   verbose=True,
-  #   callbacks=get_callbacks()
-  # )
-  #
-  # net.fit(X=tv_dataset, y=None)
+  net = MQtlNeuralNetClassifier(
+    pytorch_model,
+    max_epochs=10,
+    criterion=m_loss,
+    optimizer=m_optimizer,
+    lr=0.005,
+    # decay=0.01,
+    # momentum=0.9,
+    batch_size=m_batch_size,
+    device=device,
+    classes=["no_mqtl", "yes_mqtl"],
+    verbose=True,
+    callbacks=get_callbacks()
+  )
+
+  net.fit(X=tv_dataset, y=None)
   pass
 
 
