@@ -24,14 +24,23 @@ class SimpleCNN1DmQtlClassification(nn.Module):
     self.seq_layer_backward = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                         kernel_size_k_mer_motif)
 
-    # self.conv_seq_0 = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif)
+    tmp = num_filters # * in_channel_num_of_nucleotides
+    tmp_num_filters = num_filters
+    # size = seq_len * 2
+    # self.conv_seq_0 = self.create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)  # output_size0 = size / kernel_size_k_mer_motif
+    # self.conv_seq_1 = self.create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)  # output_size1 = output_size0 / kernel_size_k_mer_motif
+    # self.conv_seq_2 = self.create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)  # output_size2 = output_size1 / kernel_size_k_mer_motif
 
     self.flatten = nn.Flatten()
 
-    dnn_in_features = num_filters * int(seq_len / kernel_size_k_mer_motif) * 2 # two because forward_sequence, and backward_sequence
+    dnn_in_features = num_filters * int(seq_len / kernel_size_k_mer_motif) * 2
+    # two because forward_sequence,and backward_sequence
+
+    # dnn_in_features = num_filters * int(seq_len / (kernel_size_k_mer_motif ** 4)) * 2
+    # dnn_in_features = num_filters * int(seq_len / (kernel_size_k_mer_motif ** 2)) * 2
     self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
     self.dnn_act = nn.ReLU(inplace=True)
-    self.dropout = nn.Dropout(p=0.0)
+    self.dropout = nn.Dropout(p=0.33)
 
     self.out = nn.Linear(in_features=dnn_size, out_features=1)
     self.sigmoid = torch.sigmoid
@@ -54,6 +63,18 @@ class SimpleCNN1DmQtlClassification(nn.Module):
     timber.debug(mycolors.magenta + f"2{ hb.shape = }")
 
     h = torch.concatenate(tensors=(hf, hb), dim=2)
+    timber.debug(mycolors.magenta + f"4{ h.shape = } concat")
+
+    # todo: use more / less layers and see what happens
+    # h = self.conv_seq_0(h)
+    # timber.debug(mycolors.magenta + f"4{ h.shape = } conv_seq_0")
+
+    # h = self.conv_seq_1(h)
+    # timber.debug(mycolors.magenta + f"4{ h.shape = } conv_seq_1")
+
+    # h = self.conv_seq_2(h)
+    # timber.debug(mycolors.magenta + f"4{ h.shape = } conv_seq_2")
+
     # h = self.conv1d(xf)
     # timber.debug(mycolors.magenta + f"1{ xf.shape = }")
     # h = self.conv1d(xf)
@@ -62,7 +83,6 @@ class SimpleCNN1DmQtlClassification(nn.Module):
     # timber.debug(mycolors.magenta + f"3{ h.shape = }")
     # h = self.pooling(h)
     # timber.debug(mycolors.magenta + f"4{ h.shape = }")
-    timber.debug(mycolors.magenta + f"4{ h.shape = }")
     h = self.flatten(h)
     timber.debug(mycolors.magenta + f"5{ h.shape = }")
     h = self.dnn(h)

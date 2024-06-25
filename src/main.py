@@ -13,10 +13,10 @@ from models import SimpleCNN1DmQtlClassification
 import mycolors
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 8000
+WINDOW = 4000
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = False
+DEBUG = True
 
 
 def resize_and_insert_motif_if_debug(input: str) -> str:
@@ -37,7 +37,7 @@ def resize_and_insert_motif_if_debug(input: str) -> str:
 
 def get_dataframe() -> pd.DataFrame:
   df = pd.read_csv("small_dataset.csv")
-  tmp = [resize_and_insert_motif_if_debug(seq) for seq in df["sequence"]]
+  tmp = [resize_and_insert_motif_if_debug(seq) for seq in df["sequence"]]  # todo fix this
   # timber.debug(tmp)
   df["sequence"] = tmp
   shuffle_df = df.sample(frac=1)  # shuffle the dataframe

@@ -77,12 +77,12 @@ def get_callbacks() -> list:
       on_train=True,
       name="train_recall",
     )),
-    ("tr_precision", EpochScoring(
-      metrics.precision_score,
-      lower_is_better=False,
-      on_train=True,
-      name="train_precision",
-    )),
+    # ("tr_precision", EpochScoring(
+    #   metrics.precision_score,
+    #   lower_is_better=False,
+    #   on_train=True,
+    #   name="train_precision",
+    # )),
     ("tr_roc_auc", EpochScoring(
       metrics.roc_auc_score,
       lower_is_better=False,
@@ -107,12 +107,12 @@ def get_callbacks() -> list:
       on_train=False,
       name="valid_recall",
     )),
-    ("valid_precision", EpochScoring(
-      metrics.precision_score,
-      lower_is_better=False,
-      on_train=False,
-      name="valid_precision",
-    )),
+    # ("valid_precision", EpochScoring(
+    #   metrics.precision_score,
+    #   lower_is_better=False,
+    #   on_train=False,
+    #   name="valid_precision",
+    # )),
     ("valid_roc_auc", EpochScoring(
       metrics.roc_auc_score,
       lower_is_better=False,
