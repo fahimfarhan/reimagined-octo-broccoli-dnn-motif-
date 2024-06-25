@@ -11,7 +11,7 @@ class SimpleCNN1DmQtlClassification(nn.Module):
                kernel_size_k_mer_motif=4,
                num_filters=32,
                lstm_hidden_size=128,
-               dnn_size = 256,
+               dnn_size=512,
                *args,
                **kwargs
                ):

@@ -19,17 +19,22 @@ DEBUG_MOTIF = "ATCGTTCA"
 DEBUG = True
 
 
-def resize_and_insert_motif_if_debug(input: str) -> str:
-  mid = int(len(input) / 2)
+def resize_and_insert_motif_if_debug(seq: str, label: int) -> str:
+
+  # else label is 1
+  mid = int(len(seq) / 2)
   start = mid - int(WINDOW / 2)
   end = start + WINDOW
 
-  if not DEBUG:
-    return input[start: end]
+  if label == 0:
+    return seq[start: end]
 
-  rand_pos = random.randrange(start, (end - len(DEBUG_MOTIF)) )
+  if not DEBUG:
+    return seq[start: end]
+
+  rand_pos = random.randrange(start, (end - len(DEBUG_MOTIF)))
   random_end = rand_pos + len(DEBUG_MOTIF)
-  output = input[start: rand_pos] + DEBUG_MOTIF + input[random_end: end]
+  output = seq[start: rand_pos] + DEBUG_MOTIF + seq[random_end: end]
   # print(f"{start = }, { rand_pos = }, { random_end = }, { end = }, { len(DEBUG_MOTIF) = }")
   assert len(output) == WINDOW
   return output
@@ -37,7 +42,7 @@ def resize_and_insert_motif_if_debug(input: str) -> str:
 
 def get_dataframe() -> pd.DataFrame:
   df = pd.read_csv("small_dataset.csv")
-  tmp = [resize_and_insert_motif_if_debug(seq) for seq in df["sequence"]]  # todo fix this
+  tmp = [ resize_and_insert_motif_if_debug(seq=df["sequence"][idx], label=int(df["yes_mqtl"][idx])) for idx in df.index ]  # todo fix this
   # timber.debug(tmp)
   df["sequence"] = tmp
   shuffle_df = df.sample(frac=1)  # shuffle the dataframe
@@ -62,9 +67,6 @@ def start():
 
   # timber.debug(f"{len(df['sequence'][0]) = }")
   timber.debug(f"{WINDOW = }")
-
-
-
 
   ds_train = MyDataSet(x_train, y_train)
   ds_val = MyDataSet(x_val, y_val)
@@ -93,7 +95,7 @@ def start():
 
   params = {
     "optimizer__weight_decay": 0.1,
-    "optimizer__momentum" : 0.9,
+    "optimizer__momentum": 0.9,
   }
 
   net = MQtlNeuralNetClassifier(
@@ -102,7 +104,7 @@ def start():
     criterion=m_loss,
     optimizer=m_optimizer,
     lr=0.005,
-    optimizer__weight_decay=1e-5,   # this is the correct way of passing the
+    optimizer__weight_decay=1e-5,  # this is the correct way of passing the
     optimizer__momentum_decay=0.9,  # weight_decay, momentum_decay etc to NAdam optimizer
     batch_size=m_batch_size,
     device=device,
@@ -112,6 +114,10 @@ def start():
   )
 
   net.fit(X=tv_dataset, y=None)
+  pass
+
+
+def start_g_relu_demo():
   pass
 
 
