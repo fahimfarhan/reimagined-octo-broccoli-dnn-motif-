@@ -24,4 +24,5 @@ pydot
 pydotplus
 torchviz
 gReLU @ git+https://github.com/Genentech/gReLU@623fee8023aabcef89f0afeedbeafff4b71453af
+# lightning[extra]  # cz I got a stupid warning in the console logs
 torchmetrics

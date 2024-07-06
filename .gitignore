@@ -167,3 +167,4 @@ cython_debug/
 *.csv
 *.yaml
 *.ckpt
+src/lightning_logs/

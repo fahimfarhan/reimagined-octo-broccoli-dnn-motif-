@@ -13,12 +13,16 @@ from torch.utils.data import Dataset, DataLoader
 from torch import nn
 import torch
 import mycolors
+from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Score, BinaryPrecision, BinaryRecall
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 
 # df = pd.read_csv("small_dataset.csv")
 WINDOW = 4000
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
 DEBUG = True
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def resize_and_insert_motif_if_debug(seq: str, label: int) -> str:
@@ -53,11 +57,15 @@ def get_dataframe() -> pd.DataFrame:
 
 
 class MqtlDataModule(LightningDataModule):
-  def __init__(self, train_ds: MyDataSet, val_ds: MyDataSet, test_ds: MyDataSet):
+  def __init__(self, train_ds: MyDataSet, val_ds: MyDataSet, test_ds: MyDataSet, batch_size=16):
     super().__init__()
-    self.train_loader = DataLoader(train_ds)
-    self.validate_loader = DataLoader(val_ds)
-    self.test_loader = DataLoader(test_ds)
+    self.batch_size = batch_size
+    self.train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True, num_workers=15,
+                                   persistent_workers=True)
+    self.validate_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False, num_workers=15,
+                                      persistent_workers=True)
+    self.test_loader = DataLoader(test_ds, batch_size=self.batch_size, shuffle=False, num_workers=15,
+                                  persistent_workers=True)
     pass
 
   def prepare_data(self):
@@ -77,6 +85,32 @@ class MqtlDataModule(LightningDataModule):
     return self.test_loader
 
 
+class TorchMetrics:
+  def __init__(self, device=DEVICE):
+    self.binary_accuracy = BinaryAccuracy().to(device)
+    self.binary_auc = BinaryAUROC().to(device)
+    self.binary_f1_score = BinaryF1Score().to(device)
+    self.binary_precision = BinaryPrecision().to(device)
+    self.binary_recall = BinaryRecall().to(device)
+    pass
+
+
+def sklearn_metrics(name, log, y_true, y_pred):
+  return
+  # Compute metrics
+  binary_accuracy = accuracy_score(y_true, y_pred.round())
+  binary_auc = roc_auc_score(y_true, y_pred)
+  binary_f1_score = f1_score(y_true, y_pred.round())
+  binary_precision = precision_score(y_true, y_pred.round())
+  binary_recall = recall_score(y_true, y_pred.round())
+  # Log metrics using sklearn
+  log(f'{name}_accuracy', binary_accuracy)
+  log(f'{name}_auc', binary_auc)
+  log(f'{name}_f1_score', binary_f1_score)
+  log(f'{name}_precision', binary_precision)
+  log(f'{name}_recall', binary_recall)
+
+
 class SimpleCNN1DmQtlClassifierModule(LightningModule):
   def __init__(self,
                seq_len,
@@ -85,11 +119,12 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
                num_filters=32,
                lstm_hidden_size=128,
                dnn_size=512,
-               criterion = nn.BCEWithLogitsLoss(),
+               criterion=nn.BCELoss(),  # nn.BCEWithLogitsLoss(),
                *args: Any,
                **kwargs: Any):
     super().__init__(*args, **kwargs)
     self.criterion = criterion
+    self.result_torch_metrics = TorchMetrics()
 
     self.seq_layer_forward = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                        kernel_size_k_mer_motif)
@@ -99,7 +134,8 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     tmp = num_filters  # * in_channel_num_of_nucleotides
     tmp_num_filters = num_filters
     # size = seq_len * 2
-    self.conv_seq_0 = self.create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)  # output_size0 = size / kernel_size_k_mer_motif
+    self.conv_seq_0 = self.create_conv_sequence(tmp, tmp_num_filters,
+                                                kernel_size_k_mer_motif)  # output_size0 = size / kernel_size_k_mer_motif
     # self.conv_seq_1 = self.create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)  # output_size1 = output_size0 / kernel_size_k_mer_motif
     # self.conv_seq_2 = self.create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)  # output_size2 = output_size1 / kernel_size_k_mer_motif
 
@@ -116,7 +152,7 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     self.dropout = nn.Dropout(p=0.33)
 
     self.out = nn.Linear(in_features=dnn_size, out_features=1)
-    # self.sigmoid = torch.sigmoid # not needed if using nn.BCEWithLogitsLoss()
+    self.sigmoid = torch.sigmoid  # not needed if using nn.BCEWithLogitsLoss()
     pass
 
   def create_conv_sequence(self, in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif) -> nn.Sequential:
@@ -171,29 +207,47 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     timber.debug(mycolors.green + f"8{ h.shape = }")
     h = self.out(h)
     timber.debug(mycolors.yellow + f"9{ h.shape = }")
-    # h = self.sigmoid(h)
-    # timber.debug(mycolors.magenta + f"10{ h.shape = }")
+    h = self.sigmoid(h)
+    timber.debug(mycolors.magenta + f"10{ h.shape = }")
     # a sigmoid is already added in the BCEWithLogitsLoss Function. Hence don't use another sigmoid!
     y = h
     return y
 
   def training_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
     x, y = batch
-    logits = self(x)
-    loss = self.criterion(logits, y)
+    preds = self.forward(x)
+    loss = self.criterion(preds, y)
     self.log("train_loss", loss)
+    # calculate the scores start
+    self.log("train_accuracy", self.result_torch_metrics.binary_accuracy(preds, y), on_epoch=True)
+    self.log("train_auc", self.result_torch_metrics.binary_auc(preds, y), on_epoch=True)
+    self.log("train_f1_score", self.result_torch_metrics.binary_f1_score(preds, y), on_epoch=True)
+    self.log("train_precision", self.result_torch_metrics.binary_precision(preds, y), on_epoch=True)
+    self.log("train_recall", self.result_torch_metrics.binary_recall(preds, y), on_epoch=True)
+    # calculate the scores end
+    sklearn_metrics(name="sk_train", log=self.log, y_pred=preds.detach().cpu().numpy(), y_true=y.detach().cpu().numpy())
     return loss
 
   def validation_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
     x, y = batch
-    logits = self(x)
-    loss = self.criterion(logits, y)
+    preds = self.forward(x)
+    loss = self.criterion(preds, y)
     self.log("valid_loss", loss)
+    # calculate the scores start
+    self.log("valid_accuracy", self.result_torch_metrics.binary_accuracy(preds, y), on_epoch=True)
+    self.log("valid_auc", self.result_torch_metrics.binary_auc(preds, y), on_epoch=True)
+    self.log("valid_f1_score", self.result_torch_metrics.binary_f1_score(preds, y), on_epoch=True)
+    self.log("valid_precision", self.result_torch_metrics.binary_precision(preds, y), on_epoch=True)
+    self.log("valid_recall", self.result_torch_metrics.binary_recall(preds, y), on_epoch=True)
+    # calculate the scores end
+    sklearn_metrics(name="sk_valid", log=self.log, y_pred=preds.detach().cpu().numpy(), y_true=y.detach().cpu().numpy())
+
     return loss
 
   def on_validation_epoch_end(self) -> None:
     timber.info("on_validation_epoch_end")
     return None
+
   pass
 
 
@@ -203,9 +257,9 @@ def start():
     # print(f"{len(seq)}")
     assert (len(seq) == WINDOW)
 
-  experiment = 'tutorial_3'
-  if not os.path.exists(experiment):
-    os.makedirs(experiment)
+  # experiment = 'tutorial_3'
+  # if not os.path.exists(experiment):
+  #   os.makedirs(experiment)
 
   x_train, x_tmp, y_train, y_tmp = train_test_split(df["sequence"], df["yes_mqtl"], test_size=0.2)
   x_test, x_val, y_test, y_val = train_test_split(x_tmp, y_tmp, test_size=0.5)
