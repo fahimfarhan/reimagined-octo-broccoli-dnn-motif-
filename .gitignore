@@ -162,3 +162,8 @@ cython_debug/
 # c++ generated files
 *.out
 *.exe
+
+# my logs
+*.csv
+*.yaml
+*.ckpt

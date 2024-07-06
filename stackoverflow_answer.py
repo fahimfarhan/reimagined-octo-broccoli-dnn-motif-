@@ -29,7 +29,7 @@ def one_hot_e(dna_seq: str) -> np.ndarray:
 #
 # Load and prepare data    "CTCATGTCA"
 #
-df = pd.read_csv('oldv2/data64random.csv')
+df = pd.read_csv('old2/data64random.csv')
 
 # To numpy arrays, and encode X
 X = np.stack([one_hot_e(row) for row in df.Sequence], axis=0)

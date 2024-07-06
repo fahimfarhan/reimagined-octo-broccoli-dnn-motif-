@@ -24,3 +24,4 @@ pydot
 pydotplus
 torchviz
 gReLU @ git+https://github.com/Genentech/gReLU@623fee8023aabcef89f0afeedbeafff4b71453af
+torchmetrics

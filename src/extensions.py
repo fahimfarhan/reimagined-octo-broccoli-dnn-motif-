@@ -2,11 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-import torch
-from skorch import NeuralNetClassifier
 from torch.utils.data import Dataset
-from sklearn import metrics
-from skorch.callbacks import EpochScoring
 
 timber = logging.getLogger()
 # logging.basicConfig(level=logging.DEBUG)
@@ -61,73 +57,6 @@ def reverse_complement_dna_seq(dna_seq: str) -> str:
   return reverse_dna_seq(complement_dna_seq(dna_seq))
 
 
-def get_callbacks() -> list:
-  # metric.auc ( uses trapezoidal rule) gave an error: x is neither increasing, nor decreasing. so I had to remove it
-  return [
-    ("tr_acc", EpochScoring(
-      metrics.accuracy_score,
-      lower_is_better=False,
-      on_train=True,
-      name="train_acc",
-    )),
-
-    ("tr_recall", EpochScoring(
-      metrics.recall_score,
-      lower_is_better=False,
-      on_train=True,
-      name="train_recall",
-    )),
-    # ("tr_precision", EpochScoring(
-    #   metrics.precision_score,
-    #   lower_is_better=False,
-    #   on_train=True,
-    #   name="train_precision",
-    # )),
-    ("tr_roc_auc", EpochScoring(
-      metrics.roc_auc_score,
-      lower_is_better=False,
-      on_train=False,
-      name="tr_auc"
-    )),
-    ("tr_f1", EpochScoring(
-      metrics.f1_score,
-      lower_is_better=False,
-      on_train=False,
-      name="tr_f1"
-    )),
-    # ("valid_acc1", EpochScoring(
-    #   metrics.accuracy_score,
-    #   lower_is_better=False,
-    #   on_train=False,
-    #   name="valid_acc1",
-    # )),
-    ("valid_recall", EpochScoring(
-      metrics.recall_score,
-      lower_is_better=False,
-      on_train=False,
-      name="valid_recall",
-    )),
-    # ("valid_precision", EpochScoring(
-    #   metrics.precision_score,
-    #   lower_is_better=False,
-    #   on_train=False,
-    #   name="valid_precision",
-    # )),
-    ("valid_roc_auc", EpochScoring(
-      metrics.roc_auc_score,
-      lower_is_better=False,
-      on_train=False,
-      name="valid_auc"
-    )),
-    ("valid_f1", EpochScoring(
-      metrics.f1_score,
-      lower_is_better=False,
-      on_train=False,
-      name="valid_f1"
-    ))
-  ]
-
-
 class MyDataSet(Dataset):
   def __init__(self, X: pd.Series, y: pd.Series):
     self.X = X
@@ -149,44 +78,3 @@ class MyDataSet(Dataset):
     # return ohe_seq, ohe_seq_rc, label
     return [ohe_seq, ohe_seq_rc], label_np_array
 
-  def __getitem_v1__(self, idx):
-    seq, label = self.X.values[idx], self.y.values[idx]
-    # seq_rc = reverse_complement_dna_seq(seq)
-    ohe_seq = one_hot_e(dna_seq=seq).transpose()  # todo: Needs review
-    # print(f"shape fafafa = { ohe_seq.shape = }")
-    # ohe_seq_rc = one_hot_e(dna_seq=seq_rc)
-    # return ohe_seq, ohe_seq_rc, label
-    # return [ohe_seq, ohe_seq_rc], label
-    label_number = label
-    label_np_array = np.asarray([label_number])
-    return ohe_seq, label_np_array
-
-
-class TrainValidDataset(Dataset):
-  def __init__(self, train_ds: Dataset, valid_ds: Dataset):
-    self.train_ds = train_ds
-    self.valid_ds = valid_ds  # or use it as test dataset
-    pass
-
-
-class EmptyDataset(Dataset):
-  def __init__(self):
-    pass
-
-  def __len__(self):
-    return 0
-
-
-class TestDataset(TrainValidDataset):
-  def __init__(self, test_ds: Dataset):
-    super().__init__(train_ds=EmptyDataset(), valid_ds=test_ds)
-
-
-class MQtlNeuralNetClassifier(NeuralNetClassifier):
-  def get_split_datasets(self, X, y=None, **fit_params):
-    # overriding this function
-    dataset = self.get_dataset(X, y)
-    if isinstance(X, TrainValidDataset):
-      dataset_train, dataset_valid = X.train_ds, X.valid_ds
-      return dataset_train, dataset_valid
-    raise AssertionError("X is not a TrainValidDataset!")
