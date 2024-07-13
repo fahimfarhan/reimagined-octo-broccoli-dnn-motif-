@@ -4,6 +4,12 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 
+import traceback
+import torch
+from captum.attr import IntegratedGradients, DeepLiftShap, DeepLift
+
+import mycolors
+
 timber = logging.getLogger()
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
@@ -78,3 +84,81 @@ class MyDataSet(Dataset):
     # return ohe_seq, ohe_seq_rc, label
     return [ohe_seq, ohe_seq_rc], label_np_array
 
+
+######################################
+
+# functions for interpretability
+
+
+def interpret_using_integrated_gradients(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
+                                                        output_tensor: torch.Tensor):
+  # Integrated Gradients
+  timber.info("\n\n-------- Integrated Gradient start --------\n\n")
+  xf_tensor.requires_grad_()
+  xb_tensor.requires_grad_()
+  ig: IntegratedGradients = IntegratedGradients(pytorch_model)
+
+  ig_attr, ig_delta = ig.attribute((xf_tensor, xb_tensor), return_convergence_delta=True)
+  timber.info(f"ig_attr: {ig_attr}\n\n")
+  timber.info(f"ig_delta: {ig_delta}\n\n")
+  timber.info("\n\n-------- Integrated Gradient end --------\n\n")
+  return ig_attr
+
+
+def interpret_using_deeplift(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
+                                            output_tensors: torch.Tensor):
+  timber.info("\n\n-------- DeepLift start --------\n\n")
+  xf_tensor.requires_grad_()
+  xb_tensor.requires_grad_()
+  deeplift = DeepLift(pytorch_model)
+
+  dl_attr, dl_delta = deeplift.attribute((xf_tensor, xb_tensor), return_convergence_delta=True,
+                                         baselines=(xf_tensor * 0, xb_tensor * 0))
+  timber.info(f"dl_attr: {dl_attr}\n\n")
+  timber.info(f"dl_delta: {dl_delta}\n\n")
+  timber.info("\n\n-------- DeepLift end --------\n\n")
+
+  return dl_attr
+
+
+def interpret_using_deeplift_shap(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
+                                                 output_tensors: torch.Tensor):
+  timber.info("\n\n-------- DeepLiftShap start --------\n\n")
+  xf_tensor.requires_grad_()
+  xb_tensor.requires_grad_()
+  deeplift_shap = DeepLiftShap(pytorch_model)
+  dls_attr, dls_delta = deeplift_shap.attribute((xf_tensor, xb_tensor), return_convergence_delta=True,
+                                                baselines=(xf_tensor * 0, xb_tensor * 0))
+  timber.info(f"dsl_attr: {dls_attr}\n\n")
+  timber.info(f"dls_delta: {dls_delta}\n\n")
+  timber.info("\n\n-------- DeepLiftShap end --------\n\n")
+
+  return dls_attr
+
+
+def interpret_model(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
+                                   output_tensor: torch.Tensor):
+  # xf_tensor = xf_tensor.to(device=device)
+  # xb_tensor = xb_tensor.to(device=device)
+  # output_tensor = output_tensor.to(device=device)
+  pytorch_model = pytorch_model.to(device="cpu")
+  # ensure evaluation mode
+  pytorch_model = pytorch_model.eval()
+
+  try:
+    interpret_using_integrated_gradients(pytorch_model, xf_tensor, xb_tensor, output_tensor)
+  except Exception as x:
+    timber.error(mycolors.red + f"interpret_using_integrated_gradients: {x}")
+    timber.error(mycolors.yellow + traceback.format_exc())
+
+  try:
+    interpret_using_deeplift(pytorch_model, xf_tensor, xb_tensor, output_tensor)
+  except Exception as x:
+    timber.error(mycolors.red + f"interpret_using_deeplift: {x}")
+    timber.error(mycolors.yellow + traceback.format_exc())
+  try:
+    interpret_using_deeplift_shap(pytorch_model, xf_tensor, xb_tensor, output_tensor)
+  except Exception as x:
+    timber.error(mycolors.red + f"interpret_using_deeplift_shap: {x}")
+    timber.error(mycolors.yellow + traceback.format_exc())
+  pass

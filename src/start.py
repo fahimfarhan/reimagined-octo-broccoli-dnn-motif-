@@ -17,10 +17,10 @@ from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Sco
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 8000
+WINDOW = 4000
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = False
+DEBUG = True
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -151,6 +151,9 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
                lstm_hidden_size=128,
                dnn_size=512,
                criterion=nn.BCELoss(),  # nn.BCEWithLogitsLoss(),
+               regularization: int = 3,  # 1 == L1, 2 == L2, 3 (== 1 | 2) == both l1 and l2, else ignore / don't care
+               l1_lambda=0.0001,
+               l2_wright_decay=0.0005,
                *args: Any,
                **kwargs: Any):
     super().__init__(*args, **kwargs)
@@ -158,6 +161,10 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     self.train_metrics = TorchMetrics()
     self.validate_metrics = TorchMetrics()
     self.test_metrics = TorchMetrics()
+
+    self.regularization = regularization
+    self.l1_lambda = l1_lambda
+    self.l2_weight_decay = l2_wright_decay
 
     self.seq_layer_forward = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                        kernel_size_k_mer_motif)
@@ -199,7 +206,11 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     return nn.Sequential(conv1d, activation, pooling)
 
   def configure_optimizers(self) -> OptimizerLRScheduler:
-    return torch.optim.Adam(self.parameters(), lr=1e-3)
+    # Here we add weight decay (L2 regularization) to the optimizer
+    weight_decay = 0.0
+    if self.regularization | 2:
+      weight_decay = self.l2_weight_decay
+    return torch.optim.Adam(self.parameters(), lr=1e-3, weight_decay=weight_decay)  # , weight_decay=0.005)
 
   def forward(self, x, *args: Any, **kwargs: Any) -> Any:
     xf, xb = x[0], x[1]
@@ -251,6 +262,11 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     x, y = batch
     preds = self.forward(x)
     loss = self.criterion(preds, y)
+
+    if self.regularization | 1:  # apply l1 regularization
+      l1_norm = sum(p.abs().sum() for p in self.parameters())
+      loss += self.l1_lambda * l1_norm
+
     self.log("train_loss", loss)
     # calculate the scores start
     self.train_metrics.update_on_each_step(batch_predicted_labels=preds, batch_actual_labels=y)
@@ -258,7 +274,7 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     return loss
 
   def on_train_epoch_end(self) -> None:
-    timber.info("on_train_epoch_end")
+    timber.info(mycolors.green + "on_train_epoch_end")
     self.train_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="train")
     pass
 
@@ -274,7 +290,7 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     return loss
 
   def on_validation_epoch_end(self) -> None:
-    timber.info("on_validation_epoch_end")
+    timber.info(mycolors.blue + "on_validation_epoch_end")
     self.validate_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="validate", log_color=mycolors.blue)
     return None
 
@@ -290,8 +306,8 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     return loss
 
   def on_test_epoch_end(self) -> None:
-    timber.info("on_test_epoch_end")
-    self.test_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="test", log_color=mycolors.blue)
+    timber.info(mycolors.magenta + "on_test_epoch_end")
+    self.test_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="test", log_color=mycolors.magenta)
     return None
 
   pass
