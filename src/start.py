@@ -17,12 +17,30 @@ from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Sco
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 4000
+WINDOW = 8000
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = True
+DEBUG = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+""" too much code. Better use skotch to ensure the lightning ai scores are actually correct"""
+
+
+def sklearn_metrics(name, log, y_true, y_pred):
+  # return
+  # Compute metrics
+  binary_accuracy = accuracy_score(y_true, y_pred.round())
+  binary_auc = roc_auc_score(y_true, y_pred)
+  binary_f1_score = f1_score(y_true, y_pred.round())
+  # binary_precision = precision_score(y_true, y_pred.round())  # usually gets error :/
+  binary_recall = recall_score(y_true, y_pred.round())
+  # Log metrics using sklearn
+  log(f'{name}_accuracy', binary_accuracy)
+  log(f'{name}_auc', binary_auc)
+  log(f'{name}_f1_score', binary_f1_score)
+  # log(f'{name}_precision', binary_precision)
+  log(f'{name}_recall', binary_recall)
 
 
 def resize_and_insert_motif_if_debug(seq: str, label: int) -> str:
@@ -94,21 +112,34 @@ class TorchMetrics:
     self.binary_recall = BinaryRecall().to(device)
     pass
 
+  def update_on_each_step(self, batch_predicted_labels, batch_actual_labels):  # todo: Add log if needed
+    self.binary_accuracy.update(preds=batch_predicted_labels, target=batch_actual_labels)
+    self.binary_auc.update(preds=batch_predicted_labels, target=batch_actual_labels)
+    self.binary_f1_score.update(preds=batch_predicted_labels, target=batch_actual_labels)
+    self.binary_precision.update(preds=batch_predicted_labels, target=batch_actual_labels)
+    self.binary_recall.update(preds=batch_predicted_labels, target=batch_actual_labels)
+    pass
 
-def sklearn_metrics(name, log, y_true, y_pred):
-  return
-  # Compute metrics
-  binary_accuracy = accuracy_score(y_true, y_pred.round())
-  binary_auc = roc_auc_score(y_true, y_pred)
-  binary_f1_score = f1_score(y_true, y_pred.round())
-  binary_precision = precision_score(y_true, y_pred.round())
-  binary_recall = recall_score(y_true, y_pred.round())
-  # Log metrics using sklearn
-  log(f'{name}_accuracy', binary_accuracy)
-  log(f'{name}_auc', binary_auc)
-  log(f'{name}_f1_score', binary_f1_score)
-  log(f'{name}_precision', binary_precision)
-  log(f'{name}_recall', binary_recall)
+  def compute_and_reset_on_epoch_end(self, log, log_prefix: str, log_color: str = mycolors.green):
+    b_accuracy = self.binary_accuracy.compute()
+    b_auc = self.binary_auc.compute()
+    b_f1_score = self.binary_f1_score.compute()
+    b_precision = self.binary_precision.compute()
+    b_recall = self.binary_recall.compute()
+    timber.info(
+      log_color + f"{log_prefix}_acc = {b_accuracy}, {log_prefix}_auc = {b_auc}, {log_prefix}_f1_score = {b_f1_score}, {log_prefix}_precision = {b_precision}, {log_prefix}_recall = {b_recall}")
+    log(f"{log_prefix}_accuracy", b_accuracy)
+    log(f"{log_prefix}_auc", b_auc)
+    log(f"{log_prefix}_f1_score", b_f1_score)
+    log(f"{log_prefix}_precision", b_precision)
+    log(f"{log_prefix}_recall", b_recall)
+
+    self.binary_accuracy.reset()
+    self.binary_auc.reset()
+    self.binary_f1_score.reset()
+    self.binary_precision.reset()
+    self.binary_recall.reset()
+    pass
 
 
 class SimpleCNN1DmQtlClassifierModule(LightningModule):
@@ -124,7 +155,9 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
                **kwargs: Any):
     super().__init__(*args, **kwargs)
     self.criterion = criterion
-    self.result_torch_metrics = TorchMetrics()
+    self.train_metrics = TorchMetrics()
+    self.validate_metrics = TorchMetrics()
+    self.test_metrics = TorchMetrics()
 
     self.seq_layer_forward = self.create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                        kernel_size_k_mer_motif)
@@ -214,38 +247,51 @@ class SimpleCNN1DmQtlClassifierModule(LightningModule):
     return y
 
   def training_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    # Accuracy on training batch data
     x, y = batch
     preds = self.forward(x)
     loss = self.criterion(preds, y)
     self.log("train_loss", loss)
     # calculate the scores start
-    self.log("train_accuracy", self.result_torch_metrics.binary_accuracy(preds, y), on_epoch=True)
-    self.log("train_auc", self.result_torch_metrics.binary_auc(preds, y), on_epoch=True)
-    self.log("train_f1_score", self.result_torch_metrics.binary_f1_score(preds, y), on_epoch=True)
-    self.log("train_precision", self.result_torch_metrics.binary_precision(preds, y), on_epoch=True)
-    self.log("train_recall", self.result_torch_metrics.binary_recall(preds, y), on_epoch=True)
+    self.train_metrics.update_on_each_step(batch_predicted_labels=preds, batch_actual_labels=y)
     # calculate the scores end
-    sklearn_metrics(name="sk_train", log=self.log, y_pred=preds.detach().cpu().numpy(), y_true=y.detach().cpu().numpy())
     return loss
 
+  def on_train_epoch_end(self) -> None:
+    timber.info("on_train_epoch_end")
+    self.train_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="train")
+    pass
+
   def validation_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    # Accuracy on validation batch data
     x, y = batch
     preds = self.forward(x)
     loss = self.criterion(preds, y)
     self.log("valid_loss", loss)
     # calculate the scores start
-    self.log("valid_accuracy", self.result_torch_metrics.binary_accuracy(preds, y), on_epoch=True)
-    self.log("valid_auc", self.result_torch_metrics.binary_auc(preds, y), on_epoch=True)
-    self.log("valid_f1_score", self.result_torch_metrics.binary_f1_score(preds, y), on_epoch=True)
-    self.log("valid_precision", self.result_torch_metrics.binary_precision(preds, y), on_epoch=True)
-    self.log("valid_recall", self.result_torch_metrics.binary_recall(preds, y), on_epoch=True)
+    self.validate_metrics.update_on_each_step(batch_predicted_labels=preds, batch_actual_labels=y)
     # calculate the scores end
-    sklearn_metrics(name="sk_valid", log=self.log, y_pred=preds.detach().cpu().numpy(), y_true=y.detach().cpu().numpy())
-
     return loss
 
   def on_validation_epoch_end(self) -> None:
     timber.info("on_validation_epoch_end")
+    self.validate_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="validate", log_color=mycolors.blue)
+    return None
+
+  def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    # Accuracy on validation batch data
+    x, y = batch
+    preds = self.forward(x)
+    loss = self.criterion(preds, y)
+    self.log("test_loss", loss)  # do we need this?
+    # calculate the scores start
+    self.test_metrics.update_on_each_step(batch_predicted_labels=preds, batch_actual_labels=y)
+    # calculate the scores end
+    return loss
+
+  def on_test_epoch_end(self) -> None:
+    timber.info("on_test_epoch_end")
+    self.test_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="test", log_color=mycolors.blue)
     return None
 
   pass
@@ -273,7 +319,9 @@ def start():
   classifier_module = classifier_module.double()
 
   trainer = Trainer(max_epochs=10)
-  trainer.fit(classifier_module, datamodule=data_module)
+  trainer.fit(model=classifier_module, datamodule=data_module)
+  timber.info("\n\n")
+  trainer.test(model=classifier_module, datamodule=data_module)
   pass
 
 
