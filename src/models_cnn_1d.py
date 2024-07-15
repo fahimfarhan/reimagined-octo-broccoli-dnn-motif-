@@ -11,7 +11,7 @@ class Cnn1dClassifier(nn.Module):
                kernel_size_k_mer_motif=4,
                num_filters=32,
                lstm_hidden_size=128,
-               dnn_size=128,
+               dnn_size=200,
                conv_seq_list_size=3,
                *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -22,7 +22,7 @@ class Cnn1dClassifier(nn.Module):
 
     self.flatten = nn.Flatten()
 
-    dnn_in_features = int(num_filters * seq_len / 2)  # no idea why
+    dnn_in_features = int(num_filters * (seq_len * 2) / kernel_size_k_mer_motif)  # no idea why
     # two because forward_sequence,and backward_sequence
     self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
     self.dnn_activation = nn.ReLU(inplace=True)
@@ -57,3 +57,21 @@ class Cnn1dClassifier(nn.Module):
     h = self.output_activation(h)
     timber.debug(mycolors.blue + f"12{ h.shape = } output_activation")
     return h
+
+"""
+L1 regularization => everything 0.5, L2 regularization much better.
+Hence using L2 regularization
+
+seq len 100 -> acc .80, auc 0.90 (dnn_size = 128, k-mer-size = 4, num_filters = 32)  * the baseline. Improve it!
+        200 -> acc .64, auc .71  (dnn_size = 128, 512)
+               acc .71, auc .79  (dnn_size = 1024)
+        400 -> acc .57, auc .63  (dnn_size = 1024)
+        400 -> acc .63, auc .68  (lots of params changed)
+        
+        kmer_size 8 (ie, gt 4), num_filters > 32, dnn_size = 1024 leads to overfitting caused by too many parameters 
+        that memorize both, a pattern and lot's of noise.
+  
+      1000 -> acc .49, auc .50 (dnn 128, num_filters = 32, k_mer_size = 4)
+      
+      Need to consolidate for seq len 400 or 1000
+"""

@@ -1,30 +1,24 @@
-import os
+import random
 from typing import Any
 
-import pandas as pd
-import random
-
+import torch
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS, OptimizerLRScheduler, STEP_OUTPUT
-
-from extensions import *
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, recall_score
 from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset, DataLoader
 from torch import nn
-import torch
-import mycolors
+from torch.utils.data import DataLoader
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Score, BinaryPrecision, BinaryRecall
-from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 
-from models_simple_cnn_1d import SimpleCNN1DmQtlClassifier
-from models_simple_cnn_1d_tdf import SimpleCNN1dTdfClassifier
+import mycolors
+from extensions import *
 from models_cnn_1d import Cnn1dClassifier
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 100
+WINDOW = 1000
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = True
+DEBUG = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -151,8 +145,8 @@ class MQtlClassifierLightningModule(LightningModule):
                classifier: nn.Module,
                criterion=nn.BCELoss(),  # nn.BCEWithLogitsLoss(),
                regularization: int = 2,  # 1 == L1, 2 == L2, 3 (== 1 | 2) == both l1 and l2, else ignore / don't care
-               l1_lambda=0.0001,
-               l2_wright_decay=0.0005,
+               l1_lambda=0.001,
+               l2_wright_decay=0.001,
                *args: Any,
                **kwargs: Any):
     super().__init__(*args, **kwargs)
@@ -255,7 +249,7 @@ def start():
   classifier_model = Cnn1dClassifier(seq_len=WINDOW).double()
   classifier_model = classifier_model.to(DEVICE)
 
-  classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=3)
+  classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=2)
   classifier_module = classifier_module.double()
 
   trainer = Trainer(max_epochs=10)
