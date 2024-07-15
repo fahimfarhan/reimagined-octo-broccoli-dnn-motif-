@@ -16,10 +16,12 @@ import mycolors
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Score, BinaryPrecision, BinaryRecall
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 
-from models import SimpleCNN1DmQtlClassifier
+from models_simple_cnn_1d import SimpleCNN1DmQtlClassifier
+from models_simple_cnn_1d_tdf import SimpleCNN1dTdfClassifier
+from models_cnn_1d import Cnn1dClassifier
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 4000
+WINDOW = 100
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
 DEBUG = True
@@ -148,7 +150,7 @@ class MQtlClassifierLightningModule(LightningModule):
   def __init__(self,
                classifier: nn.Module,
                criterion=nn.BCELoss(),  # nn.BCEWithLogitsLoss(),
-               regularization: int = 0,  # 1 == L1, 2 == L2, 3 (== 1 | 2) == both l1 and l2, else ignore / don't care
+               regularization: int = 2,  # 1 == L1, 2 == L2, 3 (== 1 | 2) == both l1 and l2, else ignore / don't care
                l1_lambda=0.0001,
                l2_wright_decay=0.0005,
                *args: Any,
@@ -200,7 +202,7 @@ class MQtlClassifierLightningModule(LightningModule):
     # Accuracy on validation batch data
     x, y = batch
     preds = self.forward(x)
-    loss = self.criterion(preds, y)
+    loss = 0  # self.criterion(preds, y)
     self.log("valid_loss", loss)
     # calculate the scores start
     self.validate_metrics.update_on_each_step(batch_predicted_labels=preds, batch_actual_labels=y)
@@ -249,8 +251,11 @@ def start():
   test_dataset = MyDataSet(x_test, y_test)
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
-  classifier_model = SimpleCNN1DmQtlClassifier(seq_len=WINDOW)
-  classifier_module = MQtlClassifierLightningModule(classifier=classifier_model)
+  # classifier_model = SimpleCNN1DmQtlClassifier(seq_len=WINDOW)
+  classifier_model = Cnn1dClassifier(seq_len=WINDOW).double()
+  classifier_model = classifier_model.to(DEVICE)
+
+  classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=3)
   classifier_module = classifier_module.double()
 
   trainer = Trainer(max_epochs=10)

@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from torch import nn
 from torch.utils.data import Dataset
 
 import traceback
@@ -91,7 +92,7 @@ class MyDataSet(Dataset):
 
 
 def interpret_using_integrated_gradients(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                                                        output_tensor: torch.Tensor):
+                                         output_tensor: torch.Tensor):
   # Integrated Gradients
   timber.info("\n\n-------- Integrated Gradient start --------\n\n")
   xf_tensor.requires_grad_()
@@ -106,7 +107,7 @@ def interpret_using_integrated_gradients(pytorch_model, xf_tensor: torch.Tensor,
 
 
 def interpret_using_deeplift(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                                            output_tensors: torch.Tensor):
+                             output_tensors: torch.Tensor):
   timber.info("\n\n-------- DeepLift start --------\n\n")
   xf_tensor.requires_grad_()
   xb_tensor.requires_grad_()
@@ -122,7 +123,7 @@ def interpret_using_deeplift(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: 
 
 
 def interpret_using_deeplift_shap(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                                                 output_tensors: torch.Tensor):
+                                  output_tensors: torch.Tensor):
   timber.info("\n\n-------- DeepLiftShap start --------\n\n")
   xf_tensor.requires_grad_()
   xb_tensor.requires_grad_()
@@ -137,7 +138,7 @@ def interpret_using_deeplift_shap(pytorch_model, xf_tensor: torch.Tensor, xb_ten
 
 
 def interpret_model(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                                   output_tensor: torch.Tensor):
+                    output_tensor: torch.Tensor):
   # xf_tensor = xf_tensor.to(device=device)
   # xb_tensor = xb_tensor.to(device=device)
   # output_tensor = output_tensor.to(device=device)
@@ -162,3 +163,54 @@ def interpret_model(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Ten
     timber.error(mycolors.red + f"interpret_using_deeplift_shap: {x}")
     timber.error(mycolors.yellow + traceback.format_exc())
   pass
+
+# Some more util functions!
+def create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif) -> nn.Sequential:
+  conv1d = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=num_filters,
+                     kernel_size=kernel_size_k_mer_motif,
+                     padding="same")  # stride = 2, just dont use stride, keep it simple for now
+  activation = nn.ReLU(inplace=True)
+  pooling = nn.MaxPool1d(
+    kernel_size=kernel_size_k_mer_motif)  # stride = 2, just dont use stride, keep it simple for now
+
+  return nn.Sequential(conv1d, activation, pooling)
+
+
+class LambdaLayer(nn.Module):
+  """
+    tensorflow to pytorch lambda layer: https://discuss.pytorch.org/t/how-to-implement-keras-layers-core-lambda-in-pytorch/5903/2?u=fahimfarhan
+    """
+
+  def __init__(self, m_lambda):
+    super(LambdaLayer, self).__init__()
+    self.m_lambda = m_lambda
+
+  def forward(self, x):
+    return self.m_lambda(x)
+
+
+class ReduceSumLambdaLayer(LambdaLayer):
+  def __init__(self, m_lambda=torch.sum, m_dim=2):
+    super().__init__(m_lambda)
+    self.dim = m_dim  # in tensorflow, this dim was 1 :/
+
+  def forward(self, x):
+    return self.m_lambda(input=x, dim=self.dim)  # torch.sum(x,dim= 1)
+
+
+class TimeDistributed(nn.Module):
+  def __init__(self, module):
+    super(TimeDistributed, self).__init__()
+    self.module = module
+
+  def forward(self, x):
+    if len(x.size()) <= 2:
+      return self.module(x)
+    t, n = x.size(0), x.size(1)
+    # merge batch and seq dimensions
+    x_reshape = x.contiguous().view(t * n, x.size(2))
+    y = self.module(x_reshape)
+    # We have to reshape Y
+    y = y.contiguous().view(t, n, y.size()[1])
+    return y
+
