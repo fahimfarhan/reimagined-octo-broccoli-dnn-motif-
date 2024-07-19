@@ -11,7 +11,7 @@ class Cnn1dClassifier(nn.Module):
                kernel_size_k_mer_motif=4,
                num_filters=32,
                lstm_hidden_size=128,
-               dnn_size=200,
+               dnn_size=128,
                conv_seq_list_size=3,
                *args, **kwargs):
     super().__init__(*args, **kwargs)

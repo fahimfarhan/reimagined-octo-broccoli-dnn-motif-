@@ -15,10 +15,10 @@ from extensions import *
 from models_cnn_1d import Cnn1dClassifier
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 1000
+WINDOW = 100
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = False
+DEBUG = True
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
