@@ -61,12 +61,14 @@ def resize_and_insert_motif_if_debug(seq: str, label: int) -> str:
   return output
 
 
-def get_dataframe() -> pd.DataFrame:
+def get_dataframe(shuffled: bool = True) -> pd.DataFrame:
   df = pd.read_csv("small_dataset.csv")
   tmp = [resize_and_insert_motif_if_debug(seq=df["sequence"][idx], label=int(df["yes_mqtl"][idx])) for idx in
          df.index]  # todo fix this
   # timber.debug(tmp)
   df["sequence"] = tmp
+  if not shuffled:
+    return df
   shuffle_df = df.sample(frac=1)  # shuffle the dataframe
 
   return shuffle_df
@@ -174,6 +176,7 @@ class MQtlClassifierLightningModule(LightningModule):
   def training_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
     # Accuracy on training batch data
     x, y = batch
+    x = [i.float() for i in x]
     preds = self.forward(x)
     loss = self.criterion(preds, y)
 
@@ -195,6 +198,8 @@ class MQtlClassifierLightningModule(LightningModule):
   def validation_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
     # Accuracy on validation batch data
     x, y = batch
+    x = [i.float() for i in x]
+
     preds = self.forward(x)
     loss = 0  # self.criterion(preds, y)
     self.log("valid_loss", loss)
@@ -211,6 +216,8 @@ class MQtlClassifierLightningModule(LightningModule):
   def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
     # Accuracy on validation batch data
     x, y = batch
+    x = [i.float() for i in x]
+
     preds = self.forward(x)
     loss = self.criterion(preds, y)
     self.log("test_loss", loss)  # do we need this?
@@ -246,16 +253,57 @@ def start():
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
   # classifier_model = SimpleCNN1DmQtlClassifier(seq_len=WINDOW)
-  classifier_model = Cnn1dClassifier(seq_len=WINDOW).double()
+  classifier_model = Cnn1dClassifier(seq_len=WINDOW)  # .double()
   classifier_model = classifier_model.to(DEVICE)
 
   classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=2)
-  classifier_module = classifier_module.double()
+  classifier_module = classifier_module  # .double()
 
-  trainer = Trainer(max_epochs=10)
+  trainer = Trainer(max_epochs=1, precision="32")
   trainer.fit(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
+  timber.info("\n\n")
+  start_interpreting(classifier_model)
+  start_interpreting_with_dlshap(classifier_model)
+  pass
+
+
+def start_interpreting(classifier_model):
+  df: pd.DataFrame = get_dataframe(False)
+
+  seq = df.get("sequence")[0: 2]
+  print(f" {seq = } ")
+  # return
+  xf_array = one_hot_e_column(seq)
+  rc_column = reverse_complement_column(seq)
+  xb_array = one_hot_e_column(rc_column)
+
+  xf_tensor = torch.Tensor(xf_array)
+  xb_tensor = torch.Tensor(xb_array)
+
+  stacked_tensors = torch.stack((xf_tensor, xb_tensor))
+
+  interpret_using_integrated_gradients(classifier_model, stacked_tensors, None)
+  interpret_using_deeplift(classifier_model, stacked_tensors, None)
+  pass
+
+def start_interpreting_with_dlshap(classifier_model):
+  df: pd.DataFrame = get_dataframe(False)
+
+  seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
+  print(f" {seq = } ")
+  # return
+  xf_array = one_hot_e_column(seq)
+  rc_column = reverse_complement_column(seq)
+  xb_array = one_hot_e_column(rc_column)
+
+  xf_tensor = torch.Tensor(xf_array)
+  xb_tensor = torch.Tensor(xb_array)
+
+  stacked_tensors = torch.stack((xf_tensor, xb_tensor))
+  interpret_using_deeplift_shap(classifier_model, stacked_tensors, None)
+
   pass
 
 

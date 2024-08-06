@@ -36,7 +36,7 @@ def one_hot_e(dna_seq: str) -> np.ndarray:
 
 def one_hot_e_column(column: pd.Series) -> np.ndarray:
   tmp_list: list = [one_hot_e(seq) for seq in column]
-  encoded_column = np.asarray(tmp_list)
+  encoded_column = np.asarray(tmp_list).astype(np.float32)
   return encoded_column
 
 
@@ -63,6 +63,9 @@ def complement_dna_seq(dna_seq: str) -> str:
 def reverse_complement_dna_seq(dna_seq: str) -> str:
   return reverse_dna_seq(complement_dna_seq(dna_seq))
 
+def reverse_complement_column(column: pd.Series) -> np.ndarray:
+  rc_column: list = [reverse_complement_dna_seq(seq) for seq in column]
+  return rc_column
 
 class MyDataSet(Dataset):
   def __init__(self, X: pd.Series, y: pd.Series):
@@ -81,7 +84,7 @@ class MyDataSet(Dataset):
     ohe_seq_rc = one_hot_e(dna_seq=seq_rc)
 
     label_number = label * 1.0
-    label_np_array = np.asarray([label_number])
+    label_np_array = np.asarray([label_number]).astype(np.float32)
     # return ohe_seq, ohe_seq_rc, label
     return [ohe_seq, ohe_seq_rc], label_np_array
 
@@ -91,30 +94,28 @@ class MyDataSet(Dataset):
 # functions for interpretability
 
 
-def interpret_using_integrated_gradients(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                                         output_tensor: torch.Tensor):
+def interpret_using_integrated_gradients(pytorch_model, input_tensor: torch.Tensor, output_tensor: torch.Tensor):
   # Integrated Gradients
   timber.info("\n\n-------- Integrated Gradient start --------\n\n")
-  xf_tensor.requires_grad_()
-  xb_tensor.requires_grad_()
+  input_tensor.requires_grad_()
+  # xb_tensor.requires_grad_()
   ig: IntegratedGradients = IntegratedGradients(pytorch_model)
 
-  ig_attr, ig_delta = ig.attribute((xf_tensor, xb_tensor), return_convergence_delta=True)
+  ig_attr, ig_delta = ig.attribute(input_tensor, return_convergence_delta=True)
   timber.info(f"ig_attr: {ig_attr}\n\n")
   timber.info(f"ig_delta: {ig_delta}\n\n")
   timber.info("\n\n-------- Integrated Gradient end --------\n\n")
   return ig_attr
 
 
-def interpret_using_deeplift(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                             output_tensors: torch.Tensor):
+def interpret_using_deeplift(pytorch_model, input_stacked_tensors: torch.Tensor, output_tensors: torch.Tensor):
   timber.info("\n\n-------- DeepLift start --------\n\n")
-  xf_tensor.requires_grad_()
-  xb_tensor.requires_grad_()
+  input_stacked_tensors.requires_grad_()
+  # xb_tensor.requires_grad_()
   deeplift = DeepLift(pytorch_model)
 
-  dl_attr, dl_delta = deeplift.attribute((xf_tensor, xb_tensor), return_convergence_delta=True,
-                                         baselines=(xf_tensor * 0, xb_tensor * 0))
+  dl_attr, dl_delta = deeplift.attribute(input_stacked_tensors, return_convergence_delta=True,
+                                         baselines=(input_stacked_tensors * 0))
   timber.info(f"dl_attr: {dl_attr}\n\n")
   timber.info(f"dl_delta: {dl_delta}\n\n")
   timber.info("\n\n-------- DeepLift end --------\n\n")
@@ -122,14 +123,13 @@ def interpret_using_deeplift(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: 
   return dl_attr
 
 
-def interpret_using_deeplift_shap(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Tensor,
-                                  output_tensors: torch.Tensor):
+def interpret_using_deeplift_shap(pytorch_model, input_stacked_tensors: torch.Tensor, output_tensors: torch.Tensor):
   timber.info("\n\n-------- DeepLiftShap start --------\n\n")
-  xf_tensor.requires_grad_()
-  xb_tensor.requires_grad_()
+  input_stacked_tensors.requires_grad_()
+  # xb_tensor.requires_grad_()
   deeplift_shap = DeepLiftShap(pytorch_model)
-  dls_attr, dls_delta = deeplift_shap.attribute((xf_tensor, xb_tensor), return_convergence_delta=True,
-                                                baselines=(xf_tensor * 0, xb_tensor * 0))
+  dls_attr, dls_delta = deeplift_shap.attribute(input_stacked_tensors, return_convergence_delta=True,
+                                                baselines=(input_stacked_tensors * 0))
   timber.info(f"dsl_attr: {dls_attr}\n\n")
   timber.info(f"dls_delta: {dls_delta}\n\n")
   timber.info("\n\n-------- DeepLiftShap end --------\n\n")
@@ -169,7 +169,7 @@ def create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size
   conv1d = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=num_filters,
                      kernel_size=kernel_size_k_mer_motif,
                      padding="same")  # stride = 2, just dont use stride, keep it simple for now
-  activation = nn.ReLU(inplace=True)
+  activation = nn.ReLU(inplace=False)  # (inplace=True) will fess with interpretability
   pooling = nn.MaxPool1d(
     kernel_size=kernel_size_k_mer_motif)  # stride = 2, just dont use stride, keep it simple for now
 

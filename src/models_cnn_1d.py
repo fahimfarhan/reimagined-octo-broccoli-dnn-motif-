@@ -25,7 +25,7 @@ class Cnn1dClassifier(nn.Module):
     dnn_in_features = int(num_filters * (seq_len * 2) / kernel_size_k_mer_motif)  # no idea why
     # two because forward_sequence,and backward_sequence
     self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
-    self.dnn_activation = nn.ReLU(inplace=True)
+    self.dnn_activation = nn.ReLU(inplace=False)  # inplace = true messes with interpretability!
     self.dropout = nn.Dropout(p=0.33)
 
     self.output_layer = nn.Linear(in_features=dnn_size, out_features=1)
