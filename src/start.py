@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from torch import nn
 from torch.utils.data import DataLoader
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Score, BinaryPrecision, BinaryRecall
-
+import viz_sequence
 import mycolors
 from extensions import *
 from models_cnn_1d import Cnn1dClassifier
@@ -259,7 +259,7 @@ def start():
   classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=2)
   classifier_module = classifier_module  # .double()
 
-  trainer = Trainer(max_epochs=1, precision="32")
+  trainer = Trainer(max_epochs=10, precision="32")
   trainer.fit(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
@@ -284,8 +284,15 @@ def start_interpreting(classifier_model):
 
   stacked_tensors = torch.stack((xf_tensor, xb_tensor))
 
-  ig_scores = interpret_using_integrated_gradients(classifier_model, stacked_tensors, None)
-  dl_scores = interpret_using_deeplift(classifier_model, stacked_tensors, None)
+  ig_tensor = interpret_using_integrated_gradients(classifier_model, stacked_tensors, None)
+  ig_score = ig_tensor[0][0].detach().numpy()
+  viz_sequence.plot_weights(ig_score, subticks_frequency=int(WINDOW/10))
+
+  # ignore = input("Press any key to continue...")
+  dl_tensor = interpret_using_deeplift(classifier_model, stacked_tensors, None)
+  dl_score = dl_tensor[0][0].detach().numpy()
+  viz_sequence.plot_weights(dl_score, subticks_frequency=int(WINDOW / 10))
+
   pass
 
 
@@ -303,8 +310,9 @@ def start_interpreting_with_dlshap(classifier_model):
   xb_tensor = torch.Tensor(xb_array)
 
   stacked_tensors = torch.stack((xf_tensor, xb_tensor))
-  dl_shap_scores = interpret_using_deeplift_shap(classifier_model, stacked_tensors, None)
-
+  dl_shap_tensor = interpret_using_deeplift_shap(classifier_model, stacked_tensors, None)
+  dl_shap_score = dl_shap_tensor[0][0].detach().numpy()
+  viz_sequence.plot_weights(dl_shap_score, subticks_frequency=int(WINDOW / 10))
   pass
 
 

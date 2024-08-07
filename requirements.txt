@@ -15,14 +15,15 @@ plotly
 Levenshtein
 # pytorch
 captum
-torch==2.3.0
+torch==2.4.0
 torchvision
 torchaudio
 torchsummary
 torcheval
 pydot
 pydotplus
+PySide2  # matplotlib dependency on ubuntu. you may need sth else for other os/env setup
 torchviz
-gReLU @ git+https://github.com/Genentech/gReLU@623fee8023aabcef89f0afeedbeafff4b71453af
+gReLU @ git+https://github.com/Genentech/gReLU # @623fee8023aabcef89f0afeedbeafff4b71453af
 # lightning[extra]  # cz I got a stupid warning in the console logs
 torchmetrics
