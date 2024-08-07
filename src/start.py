@@ -1,7 +1,9 @@
 import random
 from typing import Any
 
+import pandas as pd
 import torch
+from matplotlib import pyplot as plt
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS, OptimizerLRScheduler, STEP_OUTPUT
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, recall_score
@@ -13,7 +15,7 @@ import viz_sequence
 import mycolors
 from extensions import *
 from models_cnn_1d import Cnn1dClassifier
-
+import grelu.visualize
 # df = pd.read_csv("small_dataset.csv")
 WINDOW = 100
 DEBUG_MOTIF = "ATCGTTCA"
@@ -264,12 +266,12 @@ def start():
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
-  start_interpreting(classifier_model)
+  start_interpreting_ig_and_dl(classifier_model)
   start_interpreting_with_dlshap(classifier_model)
   pass
 
 
-def start_interpreting(classifier_model):
+def start_interpreting_ig_and_dl(classifier_model):
   df: pd.DataFrame = get_dataframe(False)
 
   seq = df.get("sequence")[0: 2]
@@ -288,10 +290,44 @@ def start_interpreting(classifier_model):
   ig_score = ig_tensor[0][0].detach().numpy()
   viz_sequence.plot_weights(ig_score, subticks_frequency=int(WINDOW/10))
 
+  fig_ig = grelu.visualize.plot_tracks(
+    ig_score,  # Outputs to plot
+    start_pos=0,  # Start coordinate for the x-axis label
+    end_pos=None,  # End coordinate for the x-axis label
+    titles=["ig"],  # titles for each track
+    figsize=(20, 6),  # width, height
+  )
+  # todo: Maybe save the fig object in a file!
+  plt.show()
+  ig_score_df = pd.DataFrame(ig_score)
+  ig_heatmap = grelu.visualize.plot_ISM(ig_score_df, method="heatmap", figsize=(20, 1.5), center=0)
+  plt.show()
+
+  # todo: Debug why logo ain't working!
+  # ig_logo = grelu.visualize.plot_ISM(ig_score_df, method="logo", figsize=(20, 1.5), center=0)
+  # plt.show()
+
   # ignore = input("Press any key to continue...")
   dl_tensor = interpret_using_deeplift(classifier_model, stacked_tensors, None)
   dl_score = dl_tensor[0][0].detach().numpy()
   viz_sequence.plot_weights(dl_score, subticks_frequency=int(WINDOW / 10))
+
+  fig_dl = grelu.visualize.plot_tracks(
+    dl_score,  # Outputs to plot
+    start_pos=0,  # Start coordinate for the x-axis label
+    end_pos=None,  # End coordinate for the x-axis label
+    titles=["dl"],  # titles for each track
+    figsize=(20, 6),  # width, height
+  )
+  # todo: Maybe save the fig object in a file!
+  plt.show()
+  dl_score_df = pd.DataFrame(dl_score)
+
+  dl_heatmap = grelu.visualize.plot_ISM(dl_score_df, method="heatmap", figsize=(20, 1.5), center=0)
+  plt.show()
+
+  # dl_logo = grelu.visualize.plot_ISM(dl_score_df, method="logo", figsize=(20, 1.5), center=0)
+  # plt.show()
 
   pass
 
@@ -313,6 +349,25 @@ def start_interpreting_with_dlshap(classifier_model):
   dl_shap_tensor = interpret_using_deeplift_shap(classifier_model, stacked_tensors, None)
   dl_shap_score = dl_shap_tensor[0][0].detach().numpy()
   viz_sequence.plot_weights(dl_shap_score, subticks_frequency=int(WINDOW / 10))
+
+
+  fig = grelu.visualize.plot_tracks(
+    dl_shap_score,  # Outputs to plot
+    start_pos=0,  # Start coordinate for the x-axis label
+    end_pos=None,  # End coordinate for the x-axis label
+    titles=["dl_shap"],  # titles for each track
+    figsize=(20, 6),  # width, height
+  )
+  # todo: Maybe save the fig object in a file!
+  plt.show()
+  dl_shap_score_df = pd.DataFrame(dl_shap_score)
+
+  dl_shap_heatmap = grelu.visualize.plot_ISM(dl_shap_score_df, method="heatmap", figsize=(20, 1.5), center=0)
+  plt.show()
+
+  # dl_shap_logo = grelu.visualize.plot_ISM(dl_shap_score_df, method="logo", figsize=(20, 1.5), center=0)
+  # plt.show()
+
   pass
 
 

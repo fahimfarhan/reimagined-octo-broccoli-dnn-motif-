@@ -214,3 +214,11 @@ class TimeDistributed(nn.Module):
     y = y.contiguous().view(t, n, y.size()[1])
     return y
 
+
+# Function to convert a PyTorch model to a dictionary
+def model_to_dict(model):
+    model_dict = {}
+    for name, module in model.named_modules():
+        if len(list(module.children())) == 0:  # Check if the module has no children
+            model_dict[name] = {k: v for k, v in module.state_dict().items()}
+    return model_dict
