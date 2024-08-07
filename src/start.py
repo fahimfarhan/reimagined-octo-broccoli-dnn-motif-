@@ -284,9 +284,10 @@ def start_interpreting(classifier_model):
 
   stacked_tensors = torch.stack((xf_tensor, xb_tensor))
 
-  interpret_using_integrated_gradients(classifier_model, stacked_tensors, None)
-  interpret_using_deeplift(classifier_model, stacked_tensors, None)
+  ig_scores = interpret_using_integrated_gradients(classifier_model, stacked_tensors, None)
+  dl_scores = interpret_using_deeplift(classifier_model, stacked_tensors, None)
   pass
+
 
 def start_interpreting_with_dlshap(classifier_model):
   df: pd.DataFrame = get_dataframe(False)
@@ -302,7 +303,7 @@ def start_interpreting_with_dlshap(classifier_model):
   xb_tensor = torch.Tensor(xb_array)
 
   stacked_tensors = torch.stack((xf_tensor, xb_tensor))
-  interpret_using_deeplift_shap(classifier_model, stacked_tensors, None)
+  dl_shap_scores = interpret_using_deeplift_shap(classifier_model, stacked_tensors, None)
 
   pass
 
