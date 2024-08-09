@@ -7,7 +7,7 @@ from extensions import *
 class SimpleCNN1dTdfClassifier(nn.Module):
   def __init__(self,
                seq_len,
-               device,
+               # device,
                in_channel_num_of_nucleotides=4,
                kernel_size_k_mer_motif=4,
                num_filters=32,
@@ -16,14 +16,19 @@ class SimpleCNN1dTdfClassifier(nn.Module):
                conv_seq_list_size=1,
                *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.seq_layer_forward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif).to(device).double()
-    self.seq_layer_backward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif).to(device).double()
+    self.file_name = f"weights_SimpleCNN1dTdfClassifier.pth"
+
+    self.seq_layer_forward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif)
+    self.seq_layer_backward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif)
 
     tmp = num_filters  # * in_channel_num_of_nucleotides
     tmp_num_filters = num_filters
     # size = seq_len * 2
-    self.conv_seq_list_size = conv_seq_list_size
-    self.conv_seq = [create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif).to(device).double() for i in range(0, conv_seq_list_size)]
+    # self.conv_seq_list_size = conv_seq_list_size
+    # self.conv_seq = [create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif) for i in range(0, conv_seq_list_size)]
+    self.hidden1 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
+    self.hidden2 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
+    # self.hidden3 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
 
     # tdf
     self.reduced_sum = ReduceSumLambdaLayer()
@@ -33,7 +38,7 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     dnn_in_features = 32   # todo: calc later # num_filters * int(seq_len / kernel_size_k_mer_motif / 2)  # no idea why
     # two because forward_sequence,and backward_sequence
     self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
-    self.dnn_activation = nn.ReLU(inplace=True)
+    self.dnn_activation = nn.ReLU()
     self.dropout = nn.Dropout(p=0.33)
 
     self.output_layer = nn.Linear(in_features=dnn_size, out_features=1)
@@ -51,9 +56,14 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     h = torch.concatenate(tensors=(hf, hb), dim=2)
     timber.debug(mycolors.yellow + f"4{ h.shape = } concat")
 
-    for i in range(0, self.conv_seq_list_size):
-      h = self.conv_seq[i](h)
-      timber.debug(mycolors.magenta + f"5{ h.shape = } conv_seq[{i}]")
+    # for i in range(0, self.conv_seq_list_size):
+    #   h = self.conv_seq[i](h)
+    #   timber.debug(mycolors.magenta + f"5{ h.shape = } conv_seq[{i}]")
+
+    h = self.hidden1(h)
+    h = self.hidden2(h)
+    # h = self.hidden3(h)
+
     h = self.reduced_sum(h)
     timber.debug(mycolors.yellow + f"6{ h.shape = } reduce_sum")
 
