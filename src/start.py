@@ -1,6 +1,6 @@
 import random
 from typing import Any
-
+import os
 import pandas as pd
 import torch
 from matplotlib import pyplot as plt
@@ -16,6 +16,7 @@ import mycolors
 from extensions import *
 from models_cnn_1d import Cnn1dClassifier
 import grelu.visualize
+
 # df = pd.read_csv("small_dataset.csv")
 WINDOW = 100
 DEBUG_MOTIF = "ATCGTTCA"
@@ -236,7 +237,7 @@ class MQtlClassifierLightningModule(LightningModule):
   pass
 
 
-def start():
+def start(classifier_model, model_save_path):
   df: pd.DataFrame = get_dataframe()
   for seq in df["sequence"]:
     # print(f"{len(seq)}")
@@ -254,11 +255,14 @@ def start():
   test_dataset = MyDataSet(x_test, y_test)
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
-  # classifier_model = SimpleCNN1DmQtlClassifier(seq_len=WINDOW)
-  classifier_model = Cnn1dClassifier(seq_len=WINDOW)  # .double()
+
   classifier_model = classifier_model.to(DEVICE)
 
   classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=2)
+
+  if os.path.exists(model_save_path):
+    classifier_module.load_state_dict(torch.load(model_save_path))
+
   classifier_module = classifier_module  # .double()
 
   trainer = Trainer(max_epochs=10, precision="32")
@@ -266,8 +270,11 @@ def start():
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
+  torch.save(classifier_module.state_dict(), model_save_path)
+
   start_interpreting_ig_and_dl(classifier_model)
   start_interpreting_with_dlshap(classifier_model)
+
   pass
 
 
@@ -288,7 +295,7 @@ def start_interpreting_ig_and_dl(classifier_model):
 
   ig_tensor = interpret_using_integrated_gradients(classifier_model, stacked_tensors, None)
   ig_score = ig_tensor[0][0].detach().numpy()
-  viz_sequence.plot_weights(ig_score, subticks_frequency=int(WINDOW/10))
+  viz_sequence.plot_weights(ig_score, subticks_frequency=int(WINDOW / 10))
 
   fig_ig = grelu.visualize.plot_tracks(
     ig_score,  # Outputs to plot
@@ -350,7 +357,6 @@ def start_interpreting_with_dlshap(classifier_model):
   dl_shap_score = dl_shap_tensor[0][0].detach().numpy()
   viz_sequence.plot_weights(dl_shap_score, subticks_frequency=int(WINDOW / 10))
 
-
   fig = grelu.visualize.plot_tracks(
     dl_shap_score,  # Outputs to plot
     start_pos=0,  # Start coordinate for the x-axis label
@@ -372,5 +378,6 @@ def start_interpreting_with_dlshap(classifier_model):
 
 
 if __name__ == '__main__':
-  start()
+  simple_cnn = Cnn1dClassifier(seq_len=WINDOW)
+  start(classifier_model=simple_cnn, model_save_path=simple_cnn.file_name)
   pass
