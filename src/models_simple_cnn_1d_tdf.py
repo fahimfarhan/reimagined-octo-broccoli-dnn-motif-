@@ -1,7 +1,5 @@
-from torch import nn
-import torch
-import mycolors
-from extensions import *
+from start import *
+
 
 # Failed! every metric 50%
 class SimpleCNN1dTdfClassifier(nn.Module):
@@ -25,7 +23,8 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     tmp_num_filters = num_filters
     # size = seq_len * 2
     self.conv_seq_list_size = conv_seq_list_size
-    tmp_list = [create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif) for i in range(0, conv_seq_list_size)]
+    tmp_list = [create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif) for i in
+                range(0, conv_seq_list_size)]
     self.conv_list = nn.ModuleList(tmp_list)
     # self.hidden1 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
     # self.hidden2 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
@@ -35,8 +34,7 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     self.reduced_sum = ReduceSumLambdaLayer()
     self.time_distributed_flatten = TimeDistributed(nn.Flatten())
 
-
-    dnn_in_features = 32   # todo: calc later # num_filters * int(seq_len / kernel_size_k_mer_motif / 2)  # no idea why
+    dnn_in_features = 32  # todo: calc later # num_filters * int(seq_len / kernel_size_k_mer_motif / 2)  # no idea why
     # two because forward_sequence,and backward_sequence
     self.dnn = nn.Linear(in_features=dnn_in_features, out_features=dnn_size)
     self.dnn_activation = nn.ReLU()
@@ -81,3 +79,9 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     h = self.output_activation(h)
     timber.debug(mycolors.blue + f"12{ h.shape = } output_activation")
     return h
+
+
+if __name__ == '__main__':
+  pytorch_model = SimpleCNN1dTdfClassifier(seq_len=WINDOW)
+  start(classifier_model=pytorch_model, model_save_path=pytorch_model.file_name)
+  pass

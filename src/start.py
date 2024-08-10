@@ -14,7 +14,6 @@ from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Sco
 import viz_sequence
 import mycolors
 from extensions import *
-from models_cnn_1d import Cnn1dClassifier
 import grelu.visualize
 
 # df = pd.read_csv("small_dataset.csv")
@@ -376,8 +375,9 @@ def start_interpreting_with_dlshap(classifier_model):
 
   pass
 
-
+"""
 if __name__ == '__main__':
   simple_cnn = Cnn1dClassifier(seq_len=WINDOW)
   start(classifier_model=simple_cnn, model_save_path=simple_cnn.file_name)
   pass
+"""
