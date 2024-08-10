@@ -13,7 +13,7 @@ class SimpleCNN1dTdfClassifier(nn.Module):
                num_filters=32,
                lstm_hidden_size=128,
                dnn_size=512,
-               conv_seq_list_size=1,
+               conv_seq_list_size=2,
                *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.file_name = f"weights_SimpleCNN1dTdfClassifier.pth"
@@ -24,10 +24,11 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     tmp = num_filters  # * in_channel_num_of_nucleotides
     tmp_num_filters = num_filters
     # size = seq_len * 2
-    # self.conv_seq_list_size = conv_seq_list_size
-    # self.conv_seq = [create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif) for i in range(0, conv_seq_list_size)]
-    self.hidden1 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
-    self.hidden2 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
+    self.conv_seq_list_size = conv_seq_list_size
+    tmp_list = [create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif) for i in range(0, conv_seq_list_size)]
+    self.conv_list = nn.ModuleList(tmp_list)
+    # self.hidden1 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
+    # self.hidden2 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
     # self.hidden3 = create_conv_sequence(tmp, tmp_num_filters, kernel_size_k_mer_motif)
 
     # tdf
@@ -56,12 +57,12 @@ class SimpleCNN1dTdfClassifier(nn.Module):
     h = torch.concatenate(tensors=(hf, hb), dim=2)
     timber.debug(mycolors.yellow + f"4{ h.shape = } concat")
 
-    # for i in range(0, self.conv_seq_list_size):
-    #   h = self.conv_seq[i](h)
-    #   timber.debug(mycolors.magenta + f"5{ h.shape = } conv_seq[{i}]")
+    for i in range(0, self.conv_seq_list_size):
+      h = self.conv_list[i](h)
+      timber.debug(mycolors.magenta + f"5{ h.shape = } conv_seq[{i}]")
 
-    h = self.hidden1(h)
-    h = self.hidden2(h)
+    # h = self.hidden1(h)
+    # h = self.hidden2(h)
     # h = self.hidden3(h)
 
     h = self.reduced_sum(h)
