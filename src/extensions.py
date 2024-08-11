@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 import traceback
 import torch
 from captum.attr import IntegratedGradients, DeepLiftShap, DeepLift
+from transformers import BertTokenizer, BatchEncoding
 
 import mycolors
 
@@ -15,6 +16,7 @@ timber = logging.getLogger()
 # logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
 
+DNA_BERT_6 = "zhihan1996/DNA_bert_6"
 
 def one_hot_e(dna_seq: str) -> np.ndarray:
   mydict = {'A': np.asarray([1.0, 0.0, 0.0, 0.0]), 'C': np.asarray([0.0, 1.0, 0.0, 0.0]),
@@ -67,6 +69,45 @@ def reverse_complement_dna_seq(dna_seq: str) -> str:
 def reverse_complement_column(column: pd.Series) -> np.ndarray:
   rc_column: list = [reverse_complement_dna_seq(seq) for seq in column]
   return rc_column
+
+
+class BERTDataSet(Dataset):
+  def __init__(self, X: pd.Series, y: pd.Series):
+    self.X = X
+    self.y = y
+    self.len = len(X)
+    dna_bert_name: str = DNA_BERT_6
+    self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_name_or_path=dna_bert_name)
+
+  def preprocess(self, sequence: str, k=6) -> list[str]:
+    tokens = [sequence[i:i + k] for i in range(len(sequence) - k + 1)]
+    return tokens
+
+  def __len__(self):
+    return self.len
+
+  def __getitem__(self, idx):
+    seq, label = self.X.values[idx], self.y.values[idx]
+    # timber.debug(red + f"{label = }")
+    tokens: list[str] = self.preprocess(seq)
+    # timber.debug(green + f"{tokens = }")
+
+    encoded_input_x: BatchEncoding = self.bert_tokenizer(
+      tokens, return_tensors='pt', is_split_into_words=True, padding='max_length',
+      truncation=True, max_length=512
+    )
+    # torch.Size([128, 1, 512]) --> [128, 512]
+    # torch.Size([16, 1, 512]) --> [16, 512]
+    # encoded_input_x_2d = [ (key, value.squeeze(dim=1).to(DEVICE) ) for (key, value) in encoded_input_x_3d.items() ]
+    input_ids: torch.tensor = encoded_input_x["input_ids"]
+    token_type_ids: torch.tensor = encoded_input_x["token_type_ids"]
+    attention_mask: torch.tensor = encoded_input_x["attention_mask"]
+
+    # encoded_input_x["input_ids"] = input_ids.squeeze(dim=1).to(DEVICE)
+    # encoded_input_x["token_type_ids"] = token_type_ids.squeeze(dim=1).to(DEVICE)
+    # encoded_input_x["attention_mask"] = attention_mask.squeeze(dim=1).to(DEVICE)
+    encoded_input_x = {key: val.squeeze() for key, val in encoded_input_x.items()}
+    return encoded_input_x, label
 
 
 class MyDataSet(Dataset):
