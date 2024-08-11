@@ -15,6 +15,7 @@ import viz_sequence
 import mycolors
 from extensions import *
 import grelu.visualize
+import grelu.interpret.score
 
 # df = pd.read_csv("small_dataset.csv")
 WINDOW = 100
@@ -236,7 +237,7 @@ class MQtlClassifierLightningModule(LightningModule):
   pass
 
 
-def start(classifier_model, model_save_path):
+def start(classifier_model, model_save_path, is_attention_model=False):
   df: pd.DataFrame = get_dataframe()
   for seq in df["sequence"]:
     # print(f"{len(seq)}")
@@ -273,7 +274,8 @@ def start(classifier_model, model_save_path):
 
   start_interpreting_ig_and_dl(classifier_model)
   start_interpreting_with_dlshap(classifier_model)
-
+  # if is_attention_model: # todo: repair it later
+  #   start_interpreting_attention_failed(classifier_model)
   pass
 
 
@@ -373,6 +375,36 @@ def start_interpreting_with_dlshap(classifier_model):
   # dl_shap_logo = grelu.visualize.plot_ISM(dl_shap_score_df, method="logo", figsize=(20, 1.5), center=0)
   # plt.show()
 
+  pass
+
+
+def start_interpreting_attention_failed(classifier_model):
+  df: pd.DataFrame = get_dataframe(False)
+
+  input_seq = df.get("sequence")[0]  # dlshap needs size 4 -_-
+  df: pd.DataFrame = get_dataframe(False)
+
+  seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
+  print(f" {seq = } ")
+  # return
+  xf_array = one_hot_e_column(seq)
+  rc_column = reverse_complement_column(seq)
+  xb_array = one_hot_e_column(rc_column)
+
+  xf_tensor = torch.Tensor(xf_array)
+  xb_tensor = torch.Tensor(xb_array)
+
+  stacked_tensors = torch.stack((xf_tensor, xb_tensor))
+
+  ignore, attention_tensor = classifier_model.forward_for_interpretation(stacked_tensors)
+
+  attention_score = attention_tensor.detach().numpy()
+  print(f"{attention_score.shape = }")
+  attention_score = np.squeeze(attention_score, axis=2).transpose()
+  print(f"{attention_score.shape = }(After squeeze)")
+  grelu.visualize.plot_attention_matrix(
+    attention_score,
+  )
   pass
 
 """

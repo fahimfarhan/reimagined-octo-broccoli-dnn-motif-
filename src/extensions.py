@@ -63,9 +63,11 @@ def complement_dna_seq(dna_seq: str) -> str:
 def reverse_complement_dna_seq(dna_seq: str) -> str:
   return reverse_dna_seq(complement_dna_seq(dna_seq))
 
+
 def reverse_complement_column(column: pd.Series) -> np.ndarray:
   rc_column: list = [reverse_complement_dna_seq(seq) for seq in column]
   return rc_column
+
 
 class MyDataSet(Dataset):
   def __init__(self, X: pd.Series, y: pd.Series):
@@ -164,6 +166,7 @@ def interpret_model(pytorch_model, xf_tensor: torch.Tensor, xb_tensor: torch.Ten
     timber.error(mycolors.yellow + traceback.format_exc())
   pass
 
+
 # Some more util functions!
 def create_conv_sequence(in_channel_num_of_nucleotides, num_filters, kernel_size_k_mer_motif) -> nn.Sequential:
   conv1d = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=num_filters,
@@ -215,10 +218,26 @@ class TimeDistributed(nn.Module):
     return y
 
 
+class CommonAttentionLayer(nn.Module):
+  def __init__(self, hidden_size, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.attention_linear = nn.Linear(hidden_size, 1)
+    pass
+
+  def forward(self, hidden_states):
+    # Apply linear layer
+    attn_weights = self.attention_linear(hidden_states)
+    # Apply softmax to get attention scores
+    attn_weights = torch.softmax(attn_weights, dim=1)
+    # Apply attention weights to hidden states
+    context_vector = torch.sum(attn_weights * hidden_states, dim=1)
+    return context_vector, attn_weights
+
+
 # Function to convert a PyTorch model to a dictionary
 def model_to_dict(model):
-    model_dict = {}
-    for name, module in model.named_modules():
-        if len(list(module.children())) == 0:  # Check if the module has no children
-            model_dict[name] = {k: v for k, v in module.state_dict().items()}
-    return model_dict
+  model_dict = {}
+  for name, module in model.named_modules():
+    if len(list(module.children())) == 0:  # Check if the module has no children
+      model_dict[name] = {k: v for k, v in module.state_dict().items()}
+  return model_dict
