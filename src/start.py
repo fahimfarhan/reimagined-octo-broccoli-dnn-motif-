@@ -235,6 +235,7 @@ class MQtlBertClassifierLightningModule(LightningModule):
     timber.info(mycolors.magenta + "on_test_epoch_end")
     self.test_metrics.compute_and_reset_on_epoch_end(log=self.log, log_prefix="test", log_color=mycolors.magenta)
     return None
+
   pass
 
 
@@ -245,6 +246,7 @@ class MQtlClassifierLightningModule(LightningModule):
                regularization: int = 2,  # 1 == L1, 2 == L2, 3 (== 1 | 2) == both l1 and l2, else ignore / don't care
                l1_lambda=0.001,
                l2_wright_decay=0.001,
+               m_optimizer=torch.optim.Adam,
                *args: Any,
                **kwargs: Any):
     super().__init__(*args, **kwargs)
@@ -257,6 +259,7 @@ class MQtlClassifierLightningModule(LightningModule):
     self.regularization = regularization
     self.l1_lambda = l1_lambda
     self.l2_weight_decay = l2_wright_decay
+    self.m_optimizer = m_optimizer
     pass
 
   def forward(self, x, *args: Any, **kwargs: Any) -> Any:
@@ -267,7 +270,7 @@ class MQtlClassifierLightningModule(LightningModule):
     weight_decay = 0.0
     if self.regularization == 2 or self.regularization == 3:
       weight_decay = self.l2_weight_decay
-    return torch.optim.Adam(self.parameters(), lr=1e-3, weight_decay=weight_decay)  # , weight_decay=0.005)
+    return self.m_optimizer(self.parameters(), lr=1e-3, weight_decay=weight_decay)  # , weight_decay=0.005)
 
   def training_step(self, batch, batch_idx, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
     # Accuracy on training batch data
@@ -330,7 +333,7 @@ class MQtlClassifierLightningModule(LightningModule):
   pass
 
 
-def start(classifier_model, model_save_path, is_attention_model=False):
+def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam):
   df: pd.DataFrame = get_dataframe()
   for seq in df["sequence"]:
     # print(f"{len(seq)}")
@@ -351,7 +354,8 @@ def start(classifier_model, model_save_path, is_attention_model=False):
 
   classifier_model = classifier_model.to(DEVICE)
 
-  classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=2)
+  classifier_module = MQtlClassifierLightningModule(classifier=classifier_model, regularization=2,
+                                                    m_optimizer=m_optimizer)
 
   if os.path.exists(model_save_path):
     classifier_module.load_state_dict(torch.load(model_save_path))

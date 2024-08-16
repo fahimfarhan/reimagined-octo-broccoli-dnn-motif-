@@ -1,8 +1,11 @@
 import torch.nn.functional as F
+from wandb.wandb_torch import torch
 
 from start import *
 
-
+"""
+reference: https://github.com/gifford-lab/CpGenie/blob/master/cnn/seq_128x3_5_5_2f_simple.template
+"""
 class CpGenieMQTLClassifier(nn.Module):
   def __init__(self,
                seq_len,
@@ -105,5 +108,5 @@ class CpGenieMQTLClassifier(nn.Module):
 
 if __name__ == "__main__":
   pytorch_model = CpGenieMQTLClassifier(seq_len=WINDOW)
-  start(classifier_model=pytorch_model, model_save_path=f"weights_{pytorch_model.model_name}.pth")
+  start(classifier_model=pytorch_model, model_save_path=f"weights_{pytorch_model.model_name}.pth", m_optimizer=torch.optim.RMSprop)
   pass
