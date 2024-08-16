@@ -4,6 +4,7 @@ import mycolors
 from extensions import timber, create_conv_sequence
 from start import start, WINDOW
 
+
 class Cnn1dClassifier(nn.Module):
   def __init__(self,
                seq_len,
@@ -59,6 +60,7 @@ class Cnn1dClassifier(nn.Module):
     h = self.output_activation(h)
     timber.debug(mycolors.blue + f"12{ h.shape = } output_activation")
     return h
+
 
 """
 L1 regularization => everything 0.5, L2 regularization much better.

@@ -13,8 +13,8 @@ from transformers import BertTokenizer, BatchEncoding
 import mycolors
 
 timber = logging.getLogger()
-# logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
+logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
 
 DNA_BERT_6 = "zhihan1996/DNA_bert_6"
 
