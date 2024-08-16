@@ -18,7 +18,7 @@ import grelu.visualize
 import grelu.interpret.score
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = 100
+WINDOW = 200
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
 DEBUG = True
