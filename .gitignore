@@ -169,3 +169,5 @@ cython_debug/
 *.ckpt
 src/lightning_logs/
 *.pth
+/src/input/*
+!/src/input/download_dataset.sh
