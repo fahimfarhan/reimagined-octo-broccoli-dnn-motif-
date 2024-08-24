@@ -170,4 +170,8 @@ cython_debug/
 src/lightning_logs/
 *.pth
 /src/input/*
-!/src/input/download_dataset.sh
+!/src/input/_00_download_dataset.sh
+!/src/input/_01_preprocess_cosmopolitan_meqtl.py
+!/src/input/_02_generate_positive_and_negative_sequences.py
+!/src/input/_10_convert_tsv_into_sqlite.py
+!/src/input/_11_sql_commands.sql
