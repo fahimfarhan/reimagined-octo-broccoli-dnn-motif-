@@ -3,14 +3,12 @@ import time
 import pandas as pd
 # import grelu as grelu
 from grelu.data.preprocess import get_gc_matched_intervals
+from _00_constants import *
 
 
 def start():
-  half_window = 2500
-  window = 2 * half_window  # 4k ok, 6k not ok
-
   df_unfiltered = pd.read_csv(
-    "st5_filtered_cosmopolitan_meqtl_snp_cpg_distance_lte_5000.txt",
+    F"st5_filtered_cosmopolitan_meqtl_snp_cpg_distance_lte_{SLIGHTLY_LARGER_WINDOW}.txt",
     sep="\t",
     index_col=0
   )
@@ -20,8 +18,8 @@ def start():
   # df = df_unfiltered[df_unfiltered['snp.chr'] == 1]
   df = df_unfiltered
   positive_seqs["chrom"] = "chr" + (df["snp.chr"].astype(str))
-  positive_seqs["start"] = (df["snp.pos"].astype(int) - half_window)
-  positive_seqs["end"] = positive_seqs["start"] + window
+  positive_seqs["start"] = (df["snp.pos"].astype(int) - HALF_WINDOW)
+  positive_seqs["end"] = positive_seqs["start"] + WINDOW
   print("--------- positive head -------------")
 
   # positive_seqs = positive_seqs.head(100)
@@ -41,8 +39,8 @@ def start():
   )
   print("--------- negative head -------------")
   print(negatives.head())
-  positive_seqs.to_csv(f"positives_{window}.csv")
-  negatives.to_csv(f"negatives_{window}.csv")
+  positive_seqs.to_csv(f"positives_{WINDOW}.csv")
+  negatives.to_csv(f"negatives_{WINDOW}.csv")
   pass
 
 
