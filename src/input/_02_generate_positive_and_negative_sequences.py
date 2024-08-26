@@ -39,6 +39,7 @@ def start():
   )
   print("--------- negative head -------------")
   print(negatives.head())
+  negatives = negatives[negatives["start"] >= 0] # because there areb 14k negative rows -_-
   positive_seqs.to_csv(f"positives_{WINDOW}.csv")
   negatives.to_csv(f"negatives_{WINDOW}.csv")
   pass
