@@ -171,6 +171,7 @@ src/lightning_logs/
 *.pth
 /src/input/*
 !/src/input/errorlog.log
+!/src/input/_00_constants.py
 !/src/input/_00_download_dataset.sh
 !/src/input/_01_preprocess_cosmopolitan_meqtl.py
 !/src/input/_02_generate_positive_and_negative_sequences.py
