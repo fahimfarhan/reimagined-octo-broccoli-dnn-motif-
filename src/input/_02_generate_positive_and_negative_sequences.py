@@ -1,9 +1,28 @@
 import time
-
+import grelu
+from grelu.sequence.format import convert_input_type
 import pandas as pd
+
 # import grelu as grelu
 from grelu.data.preprocess import get_gc_matched_intervals
 from _00_constants import *
+
+
+def extract_intervals_to_seqs(input_df: pd.DataFrame) -> list[str]:
+  regions = pd.DataFrame()
+
+  regions["chrom"] = input_df["chrom"]
+  regions["start"] = input_df["start"]
+  regions["end"] = input_df["end"]
+  regions["strand"] = "+"
+
+  input_seqs = grelu.sequence.format.convert_input_type(
+    regions,
+    output_type="strings",
+    genome="hg38"
+  )
+
+  return input_seqs
 
 
 def start():
@@ -42,7 +61,7 @@ def start():
   )
   print("--------- negative head -------------")
   print(negatives.head())
-  negatives = negatives[negatives["start"] >= 0] # because there areb 14k negative rows -_-
+  negatives = negatives[negatives["start"] >= 0]  # because there areb 14k negative rows -_-
 
   positives["label"] = 1
   negatives["label"] = 0
@@ -54,6 +73,9 @@ def start():
   combined_dataset = (pd.concat([positives, negatives]))
   combined_dataset = combined_dataset.sort_values("chrom")
   print(combined_dataset.head())
+
+  sequences = extract_intervals_to_seqs(input_df=combined_dataset)
+  combined_dataset["sequence"] = sequences
   combined_dataset.to_csv(f"dataset_{WINDOW}.csv")
   pass
 
