@@ -14,22 +14,25 @@ def start():
   )
   print(df_unfiltered.head())
   #based on this tutorial, I need: https://genentech.github.io/gReLU/tutorials/3_train.html
-  positive_seqs: pd.DataFrame = pd.DataFrame()
+  positives: pd.DataFrame = pd.DataFrame()
   # df = df_unfiltered[df_unfiltered['snp.chr'] == 1]
   df = df_unfiltered
-  positive_seqs["chrom"] = "chr" + (df["snp.chr"].astype(str))
-  positive_seqs["start"] = (df["snp.pos"].astype(int) - HALF_WINDOW)
-  positive_seqs["end"] = positive_seqs["start"] + WINDOW
+  positives["chrom"] = "chr" + (df["snp.chr"].astype(str))
+  positives["start"] = (df["snp.pos"].astype(int) - HALF_WINDOW)
+  positives["end"] = positives["start"] + WINDOW
+  positives["snp.pos"] = df["snp.pos"].astype(int)
+  positives["cpg.pos"] = df["cpg.pos"].astype(int)
+
   print("--------- positive head -------------")
 
   # positive_seqs = positive_seqs.head(100)
-  print(positive_seqs.head())
+  print(positives.head())
 
   # creating negative dataset
   genome = "hg38"
 
   negatives = get_gc_matched_intervals(  # grelu.data.preprocess.get_gc_matched_intervals(
-    positive_seqs,
+    positives,
     binwidth=0.02,  # resolution of measuring GC content
     genome=genome,
     chroms="autosomes",  # negative regions will also be chosen from autosomes
@@ -40,8 +43,18 @@ def start():
   print("--------- negative head -------------")
   print(negatives.head())
   negatives = negatives[negatives["start"] >= 0] # because there areb 14k negative rows -_-
-  positive_seqs.to_csv(f"positives_{WINDOW}.csv")
+
+  positives["label"] = 1
+  negatives["label"] = 0
+  negatives["snp.pos"] = -1  # ignore
+  negatives["cpg.pos"] = -1  # ignore
+  positives.to_csv(f"positives_{WINDOW}.csv")
   negatives.to_csv(f"negatives_{WINDOW}.csv")
+
+  combined_dataset = (pd.concat([positives, negatives]))
+  combined_dataset = combined_dataset.sort_values("chrom")
+  print(combined_dataset.head())
+  combined_dataset.to_csv(f"dataset_{WINDOW}.csv")
   pass
 
 
