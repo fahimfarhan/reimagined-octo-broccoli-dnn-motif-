@@ -176,5 +176,7 @@ src/lightning_logs/
 !/src/input/_01_preprocess_cosmopolitan_meqtl.py
 !/src/input/_02_generate_positive_and_negative_sequences.py
 !/src/input/_03_visualize_positive_and_negative_seqs.py
+!/src/input/_04_filter_and_spliitting.py
+!/src/input/_05_mqtl_dataset.py
 !/src/input/_10_convert_tsv_into_sqlite.py
 !/src/input/_11_sql_commands.sql
