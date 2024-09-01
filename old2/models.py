@@ -168,7 +168,7 @@ class CNN1Dv2(nn.Module):
     super().__init__(*args, **kwargs)
     pass
 
-    # input / low level features extracting conv layer
+    # inputdata / low level features extracting conv layer
     self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation0 = nn.ReLU()
@@ -190,7 +190,7 @@ class CNN1Dv2(nn.Module):
 
     # output layers
     pooling_kernel_stride = 2
-    # pooking input seq_len = 64
+    # pooking inputdata seq_len = 64
     self.pooling = nn.MaxPool1d(kernel_size=pooling_kernel_stride,
                                 stride=pooling_kernel_stride)  # batch, feat, seq
     # pooling output seq_len = 64/ pks = 32
@@ -256,7 +256,7 @@ class CnnLstm1D(nn.Module):
     super().__init__(*args, **kwargs)
     pass
 
-    # input / low level features extracting conv layer
+    # inputdata / low level features extracting conv layer
     self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     # padding = "same" to keep seq_len const for convenience
@@ -390,7 +390,7 @@ class CnnTDFLstm1D_failed1(nn.Module):
     super().__init__(*args, **kwargs)
     pass
 
-    # input / low level features extracting conv layer
+    # inputdata / low level features extracting conv layer
     self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     # padding = "same" to keep seq_len const for convenience
@@ -485,7 +485,7 @@ class CnnTDFLstm1Dv2(nn.Module):
     super().__init__(*args, **kwargs)
     pass
 
-    # input / low level features extracting conv layer
+    # inputdata / low level features extracting conv layer
     self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     # padding = "same" to keep seq_len const for convenience
@@ -580,7 +580,7 @@ class CnnTDFLstm1Dv3(nn.Module):
     super().__init__(*args, **kwargs)
     pass
 
-    # input / low level features extracting conv layer
+    # inputdata / low level features extracting conv layer
     self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     # padding = "same" to keep seq_len const for convenience

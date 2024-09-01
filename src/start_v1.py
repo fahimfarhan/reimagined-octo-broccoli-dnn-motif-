@@ -1,26 +1,27 @@
-import os
 import random
 from typing import Any
-
-import grelu.interpret.score
-import grelu.visualize
+import os
+import pandas as pd
+import torch
 from matplotlib import pyplot as plt
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS, OptimizerLRScheduler, STEP_OUTPUT
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, recall_score
 from sklearn.model_selection import train_test_split
+from torch import nn
 from torch.utils.data import DataLoader
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Score, BinaryPrecision, BinaryRecall
-
 import viz_sequence
+import mycolors
 from extensions import *
-from inputdata import _00_constants
+import grelu.visualize
+import grelu.interpret.score
 
 # df = pd.read_csv("small_dataset.csv")
-WINDOW = _00_constants.WINDOW
+WINDOW = 200
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
-DEBUG = False
+DEBUG = True
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -64,14 +65,11 @@ def resize_and_insert_motif_if_debug(seq: str, label: int) -> str:
 
 
 def get_dataframe(shuffled: bool = True) -> pd.DataFrame:
-  df = pd.read_csv(f"inputdata/dataset_{WINDOW}_test.csv")
-  df = df[df["label"] == 1]
-  """
-  tmp = [resize_and_insert_motif_if_debug(seq=df["sequence"][idx], label=int(df["label"][idx])) for idx in
+  df = pd.read_csv("small_dataset.csv")
+  tmp = [resize_and_insert_motif_if_debug(seq=df["sequence"][idx], label=int(df["yes_mqtl"][idx])) for idx in
          df.index]  # todo fix this
   # timber.debug(tmp)
   df["sequence"] = tmp
-  """
   if not shuffled:
     return df
   shuffle_df = df.sample(frac=1)  # shuffle the dataframe
@@ -336,20 +334,21 @@ class MQtlClassifierLightningModule(LightningModule):
 
 
 def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam):
+  df: pd.DataFrame = get_dataframe()
+  for seq in df["sequence"]:
+    # print(f"{len(seq)}")
+    assert (len(seq) == WINDOW)
+
   # experiment = 'tutorial_3'
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
-  """
-  x_train, x_tmp, y_train, y_tmp = train_test_split(df["sequence"], df["label"], test_size=0.2)
+
+  x_train, x_tmp, y_train, y_tmp = train_test_split(df["sequence"], df["yes_mqtl"], test_size=0.2)
   x_test, x_val, y_test, y_val = train_test_split(x_tmp, y_tmp, test_size=0.5)
 
   train_dataset = MyDataSet(x_train, y_train)
   val_dataset = MyDataSet(x_val, y_val)
   test_dataset = MyDataSet(x_test, y_test)
-  """
-  train_dataset = MQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_train.csv")
-  val_dataset = MQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_validate.csv")
-  test_dataset = MQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_test.csv")
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
 
@@ -363,7 +362,7 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
 
   classifier_module = classifier_module  # .double()
 
-  trainer = Trainer(max_epochs=5, precision="32")
+  trainer = Trainer(max_epochs=10, precision="32")
   trainer.fit(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
@@ -378,7 +377,7 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
 
 
 def start_bert(classifier_model, model_save_path, criterion):
-  df: pd.DataFrame = pd.DataFrame()  # todo: Load data from file!
+  df: pd.DataFrame = get_dataframe()
   for seq in df["sequence"]:
     # print(f"{len(seq)}")
     assert (len(seq) == WINDOW)
@@ -387,7 +386,7 @@ def start_bert(classifier_model, model_save_path, criterion):
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
 
-  x_train, x_tmp, y_train, y_tmp = train_test_split(df["sequence"], df["label"], test_size=0.2)
+  x_train, x_tmp, y_train, y_tmp = train_test_split(df["sequence"], df["yes_mqtl"], test_size=0.2)
   x_test, x_val, y_test, y_val = train_test_split(x_tmp, y_tmp, test_size=0.5)
 
   train_dataset = BERTDataSet(x_train, y_train)
@@ -458,7 +457,7 @@ def start_interpreting_ig_and_dl(classifier_model):
   # ig_logo = grelu.visualize.plot_ISM(ig_score_df, method="logo", figsize=(20, 1.5), center=0)
   # plt.show()
 
-  # ignore = inputdata("Press any key to continue...")
+  # ignore = input("Press any key to continue...")
   dl_tensor = interpret_using_deeplift(classifier_model, stacked_tensors, None)
   dl_score = dl_tensor[0][0].detach().numpy()
   viz_sequence.plot_weights(dl_score, subticks_frequency=int(WINDOW / 10))

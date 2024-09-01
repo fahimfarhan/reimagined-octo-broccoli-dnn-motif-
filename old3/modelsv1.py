@@ -121,7 +121,7 @@ class CNN1DTransposedRsTDFLstm(nn.Module):
     super().__init__(*args, **kwargs)
     pass
 
-    # input / low level features extracting conv layer
+    # inputdata / low level features extracting conv layer
     self.conv1d0 = nn.Conv1d(in_channels=in_channel_num_of_nucleotides, out_channels=in_channel_num_of_nucleotides,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     # padding = "same" to keep seq_len const for convenience
@@ -141,7 +141,7 @@ class CNN1DTransposedRsTDFLstm(nn.Module):
     self.pooling1 = nn.MaxPool1d(kernel_size=pooling_kernel_stride, stride=pooling_kernel_stride)
     output_of_pooling1 = int(input_of_pooling1 / pooling_kernel_stride)  # 16
     # high level features extracting conv layer
-    #  input seq_LEN = 16
+    #  inputdata seq_LEN = 16
     self.conv1d2 = nn.Conv1d(in_channels=double_features, out_channels=double_features,
                              kernel_size=kernel_size_k_mer_motif, padding="same")
     self.activation2 = nn.ReLU()

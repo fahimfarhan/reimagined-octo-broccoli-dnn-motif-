@@ -111,15 +111,26 @@ class MQTLDataSet(Dataset):
     page_number = int(idx / self.page_size)
     relative_row = int(idx % self.page_size)
     paged_data = self.read_paged_data(page_number)
-    return paged_data["label"].iloc[relative_row]
+
+    seq = paged_data["sequence"].iloc[relative_row]
+    label = paged_data["label"].iloc[relative_row]
+    seq_rc = reverse_complement_dna_seq(seq)
+    ohe_seq = one_hot_e(dna_seq=seq)
+    # print(f"shape fafafa = { ohe_seq.shape = }")
+    ohe_seq_rc = one_hot_e(dna_seq=seq_rc)
+
+    label_number = label * 1.0
+    label_np_array = np.asarray([label_number]).astype(np.float32)
+    # return ohe_seq, ohe_seq_rc, label
+    return [ohe_seq, ohe_seq_rc], label_np_array
+
+    # return paged_data["label"].iloc[relative_row]
 
 
 def start():
   mydataset = MQTLDataSet(file_path="dataset_200_train.csv")
-  mcount = 1
   for data in mydataset:
-    print(f"{mcount = }")
-    mcount += 1
+    print(data)
   pass
 
 

@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -13,10 +14,11 @@ from transformers import BertTokenizer, BatchEncoding
 import mycolors
 
 timber = logging.getLogger()
-logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to print more logs...
 
 DNA_BERT_6 = "zhihan1996/DNA_bert_6"
+
 
 def one_hot_e(dna_seq: str) -> np.ndarray:
   mydict = {'A': np.asarray([1.0, 0.0, 0.0, 0.0]), 'C': np.asarray([0.0, 1.0, 0.0, 0.0]),
@@ -71,6 +73,37 @@ def reverse_complement_column(column: pd.Series) -> np.ndarray:
   return rc_column
 
 
+def get_row_count(file_path):
+  m_page_size = 1000  # Adjust chunk size based on your system's memory capacity
+  row_count = 0
+
+  # Iterate over each chunk and count the rows
+  for chunk in pd.read_csv(file_path, chunksize=m_page_size):
+    row_count += len(chunk)
+  return row_count
+
+
+class FIFOCache:
+  def __init__(self, capacity):
+    self.capacity = capacity
+    self.cache = OrderedDict()
+
+  def put(self, key, value):
+    # if the cache is full, discard the first item
+    if len(self.cache) >= self.capacity:
+      if key not in self.cache:
+        # discard the first item in the cache
+        discard = next(iter(self.cache))
+        del self.cache[discard]
+    # add the new item to the cache
+    self.cache[key] = value
+
+  def get(self, key):
+    if key in self.cache:
+      return self.cache[key]
+    return None
+
+
 class BERTDataSet(Dataset):
   def __init__(self, X: pd.Series, y: pd.Series):
     self.X = X
@@ -109,7 +142,7 @@ class BERTDataSet(Dataset):
     encoded_input_x = {key: val.squeeze() for key, val in encoded_input_x.items()}
     return encoded_input_x, label
 
-
+"""
 class MyDataSet(Dataset):
   def __init__(self, X: pd.Series, y: pd.Series):
     self.X = X
@@ -130,6 +163,51 @@ class MyDataSet(Dataset):
     label_np_array = np.asarray([label_number]).astype(np.float32)
     # return ohe_seq, ohe_seq_rc, label
     return [ohe_seq, ohe_seq_rc], label_np_array
+"""
+
+class MQTLDataSet(Dataset):
+  def __init__(self, file_path, page_size=1000):
+    self.file_path = file_path
+    self.page_size = page_size
+    self.fifo_cache = FIFOCache(capacity=10)
+    self.row_count = get_row_count(file_path)
+
+    pass
+
+  def __len__(self):
+    return self.row_count
+
+  def read_paged_data(self, page_number):
+    cached_page = self.fifo_cache.get(key=page_number)
+    if cached_page is not None:
+      return cached_page
+    # Calculate the starting row index
+    start_row = page_number * self.page_size
+
+    # Read the specific page chunk
+    cached_page = pd.read_csv(self.file_path, skiprows=range(1, start_row + 1), nrows=self.page_size)
+    self.fifo_cache.put(key=page_number, value=cached_page)
+    return cached_page
+
+  def __getitem__(self, idx):
+    # print(idx)
+    page_number = int(idx / self.page_size)
+    relative_row = int(idx % self.page_size)
+    paged_data = self.read_paged_data(page_number)
+
+    seq = paged_data["sequence"].iloc[relative_row]
+    label = paged_data["label"].iloc[relative_row]
+    seq_rc = reverse_complement_dna_seq(seq)
+    ohe_seq = one_hot_e(dna_seq=seq)
+    # print(f"shape fafafa = { ohe_seq.shape = }")
+    ohe_seq_rc = one_hot_e(dna_seq=seq_rc)
+
+    label_number = label * 1.0
+    label_np_array = np.asarray([label_number]).astype(np.float32)
+    # return ohe_seq, ohe_seq_rc, label
+    return [ohe_seq, ohe_seq_rc], label_np_array
+
+    # return paged_data["label"].iloc[relative_row]
 
 
 ######################################

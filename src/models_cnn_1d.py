@@ -16,7 +16,7 @@ class Cnn1dClassifier(nn.Module):
                conv_seq_list_size=3,
                *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.file_name = f"weights_Cnn1dClassifier.pth"
+    self.file_name = f"weights_Cnn1dClassifier_seqlen_{WINDOW}.pth"
 
     self.seq_layer_forward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                   kernel_size_k_mer_motif)
