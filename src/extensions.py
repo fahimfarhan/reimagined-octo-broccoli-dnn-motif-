@@ -104,6 +104,67 @@ class FIFOCache:
     return None
 
 
+class BertMQTLDataSet(Dataset):
+  def __init__(self, file_path, page_size=1000):
+    dna_bert_name: str = DNA_BERT_6
+    self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_name_or_path=dna_bert_name)
+
+    self.file_path = file_path
+    self.page_size = page_size
+    self.fifo_cache = FIFOCache(capacity=10)
+    self.row_count = get_row_count(file_path)
+    pass
+
+  def preprocess(self, sequence: str, k=6) -> list[str]:
+    tokens = [sequence[i:i + k] for i in range(len(sequence) - k + 1)]
+    return tokens
+
+  def __len__(self):
+    return self.row_count
+
+  def read_paged_data(self, page_number):
+    cached_page = self.fifo_cache.get(key=page_number)
+    if cached_page is not None:
+      return cached_page
+    # Calculate the starting row index
+    start_row = page_number * self.page_size
+
+    # Read the specific page chunk
+    cached_page = pd.read_csv(self.file_path, skiprows=range(1, start_row + 1), nrows=self.page_size)
+    self.fifo_cache.put(key=page_number, value=cached_page)
+    return cached_page
+
+  def __getitem__(self, idx):
+    # print(idx)
+    page_number = int(idx / self.page_size)
+    relative_row = int(idx % self.page_size)
+    paged_data = self.read_paged_data(page_number)
+
+    seq = paged_data["sequence"].iloc[relative_row]
+    label = paged_data["label"].iloc[relative_row]
+    # timber.debug(red + f"{label = }")
+    tokens: list[str] = self.preprocess(seq)
+    # timber.debug(green + f"{tokens = }")
+
+    encoded_input_x: BatchEncoding = self.bert_tokenizer(
+      tokens, return_tensors='pt', is_split_into_words=True, padding='max_length',
+      truncation=True, max_length=512
+    )
+    # torch.Size([128, 1, 512]) --> [128, 512]
+    # torch.Size([16, 1, 512]) --> [16, 512]
+    # encoded_input_x_2d = [ (key, value.squeeze(dim=1).to(DEVICE) ) for (key, value) in encoded_input_x_3d.items() ]
+    input_ids: torch.tensor = encoded_input_x["input_ids"]
+    token_type_ids: torch.tensor = encoded_input_x["token_type_ids"]
+    attention_mask: torch.tensor = encoded_input_x["attention_mask"]
+
+    # encoded_input_x["input_ids"] = input_ids.squeeze(dim=1).to(DEVICE)
+    # encoded_input_x["token_type_ids"] = token_type_ids.squeeze(dim=1).to(DEVICE)
+    # encoded_input_x["attention_mask"] = attention_mask.squeeze(dim=1).to(DEVICE)
+    encoded_input_x = {key: val.squeeze() for key, val in encoded_input_x.items()}
+    return encoded_input_x, label
+
+
+"""
 class BERTDataSet(Dataset):
   def __init__(self, X: pd.Series, y: pd.Series):
     self.X = X
@@ -141,6 +202,7 @@ class BERTDataSet(Dataset):
     # encoded_input_x["attention_mask"] = attention_mask.squeeze(dim=1).to(DEVICE)
     encoded_input_x = {key: val.squeeze() for key, val in encoded_input_x.items()}
     return encoded_input_x, label
+"""
 
 """
 class MyDataSet(Dataset):
@@ -164,6 +226,7 @@ class MyDataSet(Dataset):
     # return ohe_seq, ohe_seq_rc, label
     return [ohe_seq, ohe_seq_rc], label_np_array
 """
+
 
 class MQTLDataSet(Dataset):
   def __init__(self, file_path, page_size=1000):

@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS, OptimizerLRScheduler, STEP_OUTPUT
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, recall_score
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Score, BinaryPrecision, BinaryRecall
 
@@ -378,21 +377,9 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
 
 
 def start_bert(classifier_model, model_save_path, criterion):
-  df: pd.DataFrame = pd.DataFrame()  # todo: Load data from file!
-  for seq in df["sequence"]:
-    # print(f"{len(seq)}")
-    assert (len(seq) == WINDOW)
-
-  # experiment = 'tutorial_3'
-  # if not os.path.exists(experiment):
-  #   os.makedirs(experiment)
-
-  x_train, x_tmp, y_train, y_tmp = train_test_split(df["sequence"], df["label"], test_size=0.2)
-  x_test, x_val, y_test, y_val = train_test_split(x_tmp, y_tmp, test_size=0.5)
-
-  train_dataset = BERTDataSet(x_train, y_train)
-  val_dataset = BERTDataSet(x_val, y_val)
-  test_dataset = BERTDataSet(x_test, y_test)
+  train_dataset = BertMQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_train.csv")
+  val_dataset = BertMQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_validate.csv")
+  test_dataset = BertMQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_test.csv")
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset, batch_size=4)
 
