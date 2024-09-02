@@ -16,15 +16,12 @@ from extensions import *
 
 # df = pd.read_csv("small_dataset.csv")
 # WINDOW = 200
-dataset_folder_prefix = "inputdata/"
-DEBUG_MOTIF = "ATCGTTCA"
-# LEN_DEBUG_MOTIF = 8
-DEBUG = False
+# dataset_folder_prefix = "inputdata/"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def get_dataframe(WINDOW: int, shuffled: bool = True) -> pd.DataFrame:
+def get_dataframe(dataset_folder_prefix: str, WINDOW: int, shuffled: bool = True) -> pd.DataFrame:
   df = pd.read_csv(f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
   df = df[df["label"] == 1]
   if not shuffled:
@@ -290,7 +287,7 @@ class MQtlClassifierLightningModule(LightningModule):
   pass
 
 
-def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200):
+def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200, dataset_folder_prefix = "inputdata/"):
   # experiment = 'tutorial_3'
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
@@ -325,14 +322,14 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   timber.info("\n\n")
   torch.save(classifier_module.state_dict(), model_save_path)
 
-  start_interpreting_ig_and_dl(classifier_model)
-  start_interpreting_with_dlshap(classifier_model)
+  start_interpreting_ig_and_dl(classifier_model, WINDOW, dataset_folder_prefix=dataset_folder_prefix)
+  start_interpreting_with_dlshap(classifier_model, WINDOW, dataset_folder_prefix=dataset_folder_prefix)
   # if is_attention_model: # todo: repair it later
   #   start_interpreting_attention_failed(classifier_model)
   pass
 
 
-def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4):
+def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4, dataset_folder_prefix = "inputdata/"):
   train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train.csv")
   val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate.csv")
   test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
@@ -363,14 +360,14 @@ def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_s
 
   return
   # todo: Repair the interpretation pipeline for bert model
-  start_interpreting_ig_and_dl(classifier_model)
-  start_interpreting_with_dlshap(classifier_model)
+  start_interpreting_ig_and_dl(classifier_model, WINDOW, dataset_folder_prefix)
+  start_interpreting_with_dlshap(classifier_model, WINDOW, dataset_folder_prefix)
 
   pass
 
 
-def start_interpreting_ig_and_dl(classifier_model, WINDOW):
-  df: pd.DataFrame = get_dataframe(WINDOW, False)
+def start_interpreting_ig_and_dl(classifier_model, WINDOW, dataset_folder_prefix = "inputdata/"):
+  df: pd.DataFrame = get_dataframe(dataset_folder_prefix, WINDOW, False)
 
   seq = df.get("sequence")[0: 2]
   print(f" {seq = } ")
@@ -430,8 +427,8 @@ def start_interpreting_ig_and_dl(classifier_model, WINDOW):
   pass
 
 
-def start_interpreting_with_dlshap(classifier_model, WINDOW):
-  df: pd.DataFrame = get_dataframe(WINDOW, False)
+def start_interpreting_with_dlshap(classifier_model, WINDOW, dataset_folder_prefix = "inputdata/"):
+  df: pd.DataFrame = get_dataframe(dataset_folder_prefix, WINDOW, False)
 
   seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
   print(f" {seq = } ")
@@ -468,9 +465,9 @@ def start_interpreting_with_dlshap(classifier_model, WINDOW):
   pass
 
 
-def start_interpreting_attention_failed(classifier_model, WINDOW):
+def start_interpreting_attention_failed(classifier_model, WINDOW, dataset_folder_prefix = "inputdata/"):
 
-  df: pd.DataFrame = get_dataframe(WINDOW, False)
+  df: pd.DataFrame = get_dataframe(dataset_folder_prefix, WINDOW, False)
 
   seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
   print(f" {seq = } ")

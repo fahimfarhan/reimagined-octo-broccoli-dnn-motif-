@@ -116,7 +116,9 @@ class MQtlDnaBERT6Classifier(nn.Module):
 
 
 if __name__ == "__main__":
+  dataset_folder_prefix = "inputdata/"
   pytorch_model = MQtlDnaBERT6Classifier()
   start_bert(classifier_model=pytorch_model, model_save_path=f"weights_{pytorch_model.model_name}.pth",
-             criterion=ReshapedBCEWithLogitsLoss(), WINDOW=200, batch_size=4)
+             criterion=ReshapedBCEWithLogitsLoss(), WINDOW=200, batch_size=4,
+             dataset_folder_prefix=dataset_folder_prefix)
   pass
