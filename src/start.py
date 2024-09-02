@@ -332,12 +332,16 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   pass
 
 
-def start_bert(classifier_model, model_save_path, criterion, WINDOW=200):
+def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4):
   train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train.csv")
   val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate.csv")
   test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
 
-  data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset, batch_size=4)
+  data_module = MqtlDataModule(
+    train_ds=train_dataset,
+    val_ds=val_dataset,
+    test_ds=test_dataset,
+    batch_size=batch_size)
 
   classifier_model = classifier_model.to(DEVICE)
 
