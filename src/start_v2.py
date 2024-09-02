@@ -13,20 +13,64 @@ from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryF1Sco
 
 import viz_sequence
 from extensions import *
+from inputdata import _00_constants
 
 # df = pd.read_csv("small_dataset.csv")
-# WINDOW = 200
-dataset_folder_prefix = "inputdata/"
+WINDOW = _00_constants.WINDOW
 DEBUG_MOTIF = "ATCGTTCA"
 # LEN_DEBUG_MOTIF = 8
 DEBUG = False
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+""" too much code. Better use skotch to ensure the lightning ai scores are actually correct"""
 
-def get_dataframe(WINDOW: int, shuffled: bool = True) -> pd.DataFrame:
-  df = pd.read_csv(f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
+
+def sklearn_metrics(name, log, y_true, y_pred):
+  # return
+  # Compute metrics
+  binary_accuracy = accuracy_score(y_true, y_pred.round())
+  binary_auc = roc_auc_score(y_true, y_pred)
+  binary_f1_score = f1_score(y_true, y_pred.round())
+  # binary_precision = precision_score(y_true, y_pred.round())  # usually gets error :/
+  binary_recall = recall_score(y_true, y_pred.round())
+  # Log metrics using sklearn
+  log(f'{name}_accuracy', binary_accuracy)
+  log(f'{name}_auc', binary_auc)
+  log(f'{name}_f1_score', binary_f1_score)
+  # log(f'{name}_precision', binary_precision)
+  log(f'{name}_recall', binary_recall)
+
+
+def resize_and_insert_motif_if_debug(seq: str, label: int) -> str:
+  # else label is 1
+  mid = int(len(seq) / 2)
+  start = mid - int(WINDOW / 2)
+  end = start + WINDOW
+
+  if label == 0:
+    return seq[start: end]
+
+  if not DEBUG:
+    return seq[start: end]
+
+  rand_pos = random.randrange(start, (end - len(DEBUG_MOTIF)))
+  random_end = rand_pos + len(DEBUG_MOTIF)
+  output = seq[start: rand_pos] + DEBUG_MOTIF + seq[random_end: end]
+  # print(f"{start = }, { rand_pos = }, { random_end = }, { end = }, { len(DEBUG_MOTIF) = }")
+  assert len(output) == WINDOW
+  return output
+
+
+def get_dataframe(shuffled: bool = True) -> pd.DataFrame:
+  df = pd.read_csv(f"inputdata/dataset_{WINDOW}_test.csv")
   df = df[df["label"] == 1]
+  """
+  tmp = [resize_and_insert_motif_if_debug(seq=df["sequence"][idx], label=int(df["label"][idx])) for idx in
+         df.index]  # todo fix this
+  # timber.debug(tmp)
+  df["sequence"] = tmp
+  """
   if not shuffled:
     return df
   shuffle_df = df.sample(frac=1)  # shuffle the dataframe
@@ -290,7 +334,7 @@ class MQtlClassifierLightningModule(LightningModule):
   pass
 
 
-def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200):
+def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam):
   # experiment = 'tutorial_3'
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
@@ -302,9 +346,9 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   val_dataset = MyDataSet(x_val, y_val)
   test_dataset = MyDataSet(x_test, y_test)
   """
-  train_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train.csv")
-  val_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate.csv")
-  test_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
+  train_dataset = MQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_train.csv")
+  val_dataset = MQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_validate.csv")
+  test_dataset = MQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_test.csv")
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
 
@@ -332,10 +376,10 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   pass
 
 
-def start_bert(classifier_model, model_save_path, criterion, WINDOW=200):
-  train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train.csv")
-  val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate.csv")
-  test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
+def start_bert(classifier_model, model_save_path, criterion):
+  train_dataset = BertMQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_train.csv")
+  val_dataset = BertMQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_validate.csv")
+  test_dataset = BertMQTLDataSet(file_path=f"inputdata/dataset_{WINDOW}_test.csv")
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset, batch_size=4)
 
@@ -365,8 +409,8 @@ def start_bert(classifier_model, model_save_path, criterion, WINDOW=200):
   pass
 
 
-def start_interpreting_ig_and_dl(classifier_model, WINDOW):
-  df: pd.DataFrame = get_dataframe(WINDOW, False)
+def start_interpreting_ig_and_dl(classifier_model):
+  df: pd.DataFrame = get_dataframe(False)
 
   seq = df.get("sequence")[0: 2]
   print(f" {seq = } ")
@@ -426,8 +470,8 @@ def start_interpreting_ig_and_dl(classifier_model, WINDOW):
   pass
 
 
-def start_interpreting_with_dlshap(classifier_model, WINDOW):
-  df: pd.DataFrame = get_dataframe(WINDOW, False)
+def start_interpreting_with_dlshap(classifier_model):
+  df: pd.DataFrame = get_dataframe(False)
 
   seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
   print(f" {seq = } ")
@@ -464,9 +508,11 @@ def start_interpreting_with_dlshap(classifier_model, WINDOW):
   pass
 
 
-def start_interpreting_attention_failed(classifier_model, WINDOW):
+def start_interpreting_attention_failed(classifier_model):
+  df: pd.DataFrame = get_dataframe(False)
 
-  df: pd.DataFrame = get_dataframe(WINDOW, False)
+  input_seq = df.get("sequence")[0]  # dlshap needs size 4 -_-
+  df: pd.DataFrame = get_dataframe(False)
 
   seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
   print(f" {seq = } ")
