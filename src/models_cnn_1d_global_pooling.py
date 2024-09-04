@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from start import start
 
 from extensions import create_conv_sequence, timber
 import mycolors
@@ -61,9 +62,8 @@ class Cnn1dGlobalPoolingClassifier(nn.Module):
     return x
 
 
-from start import start, WINDOW
-
 if __name__ == '__main__':
+  WINDOW = 200
   pytorch_model = Cnn1dGlobalPoolingClassifier(WINDOW)
-  start(pytorch_model, pytorch_model.file_name)
+  start(pytorch_model, pytorch_model.file_name, WINDOW=WINDOW, dataset_folder_prefix="inputdata/")
   pass

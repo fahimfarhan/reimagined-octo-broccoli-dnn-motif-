@@ -1,5 +1,5 @@
 from extensions import *
-from start import start, WINDOW
+from start import start
 
 
 # Failed! every metric 50%
@@ -87,6 +87,7 @@ class SimpleCNN1dTdfLstmClassifier(nn.Module):
 
 
 if __name__ == "__main__":
-  pytorch_model = SimpleCNN1dTdfLstmClassifier(seq_len=WINDOW)
-  start(pytorch_model, pytorch_model.file_name)
+  window = 200
+  pytorch_model = SimpleCNN1dTdfLstmClassifier(seq_len=window)
+  start(pytorch_model, pytorch_model.file_name, WINDOW=window, dataset_folder_prefix="inputdata/")
   pass

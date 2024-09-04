@@ -2,8 +2,9 @@ from torch import nn
 import torch
 import mycolors
 from extensions import timber, create_conv_sequence
-from start import start, WINDOW
+from start import start
 
+WINDOW = 200
 
 class Cnn1dClassifier(nn.Module):
   def __init__(self,
@@ -82,5 +83,5 @@ seq len 100 -> acc .80, auc 0.90 (dnn_size = 128, k-mer-size = 4, num_filters = 
 
 if __name__ == '__main__':
   simple_cnn = Cnn1dClassifier(seq_len=WINDOW)
-  start(classifier_model=simple_cnn, model_save_path=simple_cnn.file_name)
+  start(classifier_model=simple_cnn, model_save_path=simple_cnn.file_name, WINDOW=WINDOW, dataset_folder_prefix="inputdata/")
   pass

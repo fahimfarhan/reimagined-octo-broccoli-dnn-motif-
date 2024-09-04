@@ -82,6 +82,7 @@ class SimpleCNN1dTdfClassifier(nn.Module):
 
 
 if __name__ == '__main__':
-  pytorch_model = SimpleCNN1dTdfClassifier(seq_len=WINDOW)
-  start(classifier_model=pytorch_model, model_save_path=pytorch_model.file_name)
+  window = 200
+  pytorch_model = SimpleCNN1dTdfClassifier(seq_len=window)
+  start(classifier_model=pytorch_model, model_save_path=pytorch_model.file_name, WINDOW=window, dataset_folder_prefix="inputdata/")
   pass

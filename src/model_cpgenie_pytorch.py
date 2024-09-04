@@ -107,6 +107,7 @@ class CpGenieMQTLClassifier(nn.Module):
 
 
 if __name__ == "__main__":
-  pytorch_model = CpGenieMQTLClassifier(seq_len=WINDOW)
-  start(classifier_model=pytorch_model, model_save_path=f"weights_{pytorch_model.model_name}.pth", m_optimizer=torch.optim.RMSprop)
+  window = 200
+  pytorch_model = CpGenieMQTLClassifier(seq_len=window)
+  start(classifier_model=pytorch_model, model_save_path=f"weights_{pytorch_model.model_name}.pth", m_optimizer=torch.optim.RMSprop, WINDOW=window, dataset_folder_prefix="inputdata/")
   pass

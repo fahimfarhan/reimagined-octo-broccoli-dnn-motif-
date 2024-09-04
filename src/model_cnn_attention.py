@@ -53,6 +53,7 @@ class Cnn1dAttentionClassifier(nn.Module):
     return h, attention_weight
 
 if __name__ == '__main__':
-  attention_model = Cnn1dAttentionClassifier(WINDOW)
-  start(attention_model, attention_model.file_name, is_attention_model=True)
+  window = 200
+  attention_model = Cnn1dAttentionClassifier(window)
+  start(attention_model, attention_model.file_name, is_attention_model=True, WINDOW=window, dataset_folder_prefix="inputdata/")
   pass

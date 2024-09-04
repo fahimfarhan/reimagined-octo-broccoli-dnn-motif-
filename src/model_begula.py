@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from extensions import create_conv_sequence, timber
 import mycolors
-from src.start import start, WINDOW
+from src.start import start
 
 """
 Begula code reference: https://github.com/kipoi/models/blob/master/DeepSEA/beluga/model.py
@@ -62,9 +62,12 @@ class Beluga(nn.Module):
   def forward(self, x):
     return self.model(x)
 
+
 """
 Beluga is having a size missmatch, will repair it later
 """
+
+
 class BelugaMQTLClassifier(nn.Module):
   def __init__(self, seq_len, in_channel_num_of_nucleotides=4, kernel_size_k_mer_motif=1, num_filters=32,
                lstm_hidden_size=128, dnn_size=128, conv_seq_list_size=3, *args, **kwargs):
@@ -77,7 +80,7 @@ class BelugaMQTLClassifier(nn.Module):
     self.seq_layer_backward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                    kernel_size_k_mer_motif)
 
-    self.hidden1 = create_conv_sequence(num_filters, 4, kernel_size_k_mer_motif) # to match the dimensions with begula
+    self.hidden1 = create_conv_sequence(num_filters, 4, kernel_size_k_mer_motif)  # to match the dimensions with begula
 
     # begula model as a layer
     self.beluga = Beluga()
@@ -113,8 +116,13 @@ class BelugaMQTLClassifier(nn.Module):
 
 if __name__ == "__main__":
   # FAILED!!! SIZE Mismatch error!
-  beluga_classifier = BelugaMQTLClassifier(seq_len=WINDOW)
+  window = 200
+
+  beluga_classifier = BelugaMQTLClassifier(seq_len=window)
   start(classifier_model=beluga_classifier,
         model_save_path=f"weights_{beluga_classifier.model_name}.pth",
-        m_optimizer=torch.optim.RMSprop)
+        m_optimizer=torch.optim.RMSprop,
+        WINDOW=window,
+        dataset_folder_prefix="inputdata/"
+        )
   pass
