@@ -287,7 +287,8 @@ class MQtlClassifierLightningModule(LightningModule):
   pass
 
 
-def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200, dataset_folder_prefix = "inputdata/"):
+def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200,
+          dataset_folder_prefix="inputdata/", is_binned=True):
   # experiment = 'tutorial_3'
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
@@ -299,9 +300,13 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   val_dataset = MyDataSet(x_val, y_val)
   test_dataset = MyDataSet(x_test, y_test)
   """
-  train_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train.csv")
-  val_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate.csv")
-  test_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
+  file_suffix = ""
+  if is_binned:
+    file_suffix = "_binned"
+
+  train_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train{file_suffix}.csv")
+  val_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate{file_suffix}.csv")
+  test_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test{file_suffix}.csv")
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
 
@@ -329,10 +334,15 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   pass
 
 
-def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4, dataset_folder_prefix = "inputdata/"):
-  train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train.csv")
-  val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate.csv")
-  test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test.csv")
+def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4,
+               dataset_folder_prefix="inputdata/", is_binned=True):
+  file_suffix = ""
+  if is_binned:
+    file_suffix = "_binned"
+
+  train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train{file_suffix}.csv")
+  val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate{file_suffix}.csv")
+  test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test{file_suffix}.csv")
 
   data_module = MqtlDataModule(
     train_ds=train_dataset,
@@ -366,7 +376,7 @@ def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_s
   pass
 
 
-def start_interpreting_ig_and_dl(classifier_model, WINDOW, dataset_folder_prefix = "inputdata/"):
+def start_interpreting_ig_and_dl(classifier_model, WINDOW, dataset_folder_prefix="inputdata/"):
   df: pd.DataFrame = get_dataframe(dataset_folder_prefix, WINDOW, False)
 
   seq = df.get("sequence")[0: 2]
@@ -427,7 +437,7 @@ def start_interpreting_ig_and_dl(classifier_model, WINDOW, dataset_folder_prefix
   pass
 
 
-def start_interpreting_with_dlshap(classifier_model, WINDOW, dataset_folder_prefix = "inputdata/"):
+def start_interpreting_with_dlshap(classifier_model, WINDOW, dataset_folder_prefix="inputdata/"):
   df: pd.DataFrame = get_dataframe(dataset_folder_prefix, WINDOW, False)
 
   seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-
@@ -465,8 +475,7 @@ def start_interpreting_with_dlshap(classifier_model, WINDOW, dataset_folder_pref
   pass
 
 
-def start_interpreting_attention_failed(classifier_model, WINDOW, dataset_folder_prefix = "inputdata/"):
-
+def start_interpreting_attention_failed(classifier_model, WINDOW, dataset_folder_prefix="inputdata/"):
   df: pd.DataFrame = get_dataframe(dataset_folder_prefix, WINDOW, False)
 
   seq = df.get("sequence")[0: 4]  # dlshap needs size 4 -_-

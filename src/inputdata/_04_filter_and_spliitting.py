@@ -9,7 +9,6 @@ if __name__ == "__main__":
 
   df_unfiltered = pd.read_csv(f"dataset_{WINDOW}.csv")
 
-
   df = df_unfiltered.dropna(subset=["sequence"])
   df = df[df["sequence"].notnull()]
   df = df[df["sequence"] != ""]
@@ -19,13 +18,36 @@ if __name__ == "__main__":
   print(row)
   print(f"{seq = }")
 
-  # print(df["sequence"])
+  perform_binning = True
+  file_suffix = ""
 
-  train, validate, test = grelu.data.preprocess.split(df)
+  list_of_dfs = []
+
+  if perform_binning:
+    file_suffix = "_binned"
+    for i in range(1, 23):
+      # print(f"chrom{i}")
+      tmp = df[df["chrom"] == f"chr{i}"].head(1000)  # limit(1000)
+      # print(f"chr{i} -> {tmp['chrom'] = }")
+      list_of_dfs.append(tmp)
+    binned_df = pd.concat(list_of_dfs, axis=0, ignore_index=True)
+  else:
+    binned_df = df
+
+  print(f"{binned_df['chrom'] = }")
+
+  # print(df["sequence"])
+  train_chroms = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr14", "chr15", "chr16",
+                  "chr17", "chr18", "chr19", "chr20", "chr21", "chr22"]
+  val_chroms = ["chr12", "chr13"]
+  test_chroms = ["chr10", "chr11"]
+
+  train, validate, test = grelu.data.preprocess.split(data=binned_df, train_chroms=train_chroms, val_chroms=val_chroms,
+                                                      test_chroms=test_chroms)
   print(train.head())
-  train.to_csv(f"dataset_{WINDOW}_train.csv")
-  validate.to_csv(f"dataset_{WINDOW}_validate.csv")
-  test.to_csv(f"dataset_{WINDOW}_test.csv")
+  train.to_csv(f"dataset_{WINDOW}_train{file_suffix}.csv", index=False)
+  validate.to_csv(f"dataset_{WINDOW}_validate{file_suffix}.csv", index=False)
+  test.to_csv(f"dataset_{WINDOW}_test{file_suffix}.csv", index=False)
 
   # Record the end time
   end_time = time.time()
