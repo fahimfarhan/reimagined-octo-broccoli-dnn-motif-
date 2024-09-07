@@ -19,7 +19,7 @@ class Cnn1dGlobalPoolingClassifier(nn.Module):
                *args,
                **kwargs):
     super().__init__(*args, **kwargs)
-    self.file_name = f"weights_Cnn1dGlobalPoolingClassifier.pth"
+    self.file_name = f"../weights_Cnn1dGlobalPoolingClassifier.pth"
 
     self.seq_layer_forward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                   kernel_size_k_mer_motif)

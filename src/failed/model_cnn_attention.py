@@ -14,7 +14,7 @@ class Cnn1dAttentionClassifier(nn.Module):
                conv_seq_list_size=2,
                *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.file_name = f"weights_Cnn1dAttentionClassifier.pth"
+    self.file_name = f"../weights_Cnn1dAttentionClassifier.pth"
 
     # CNN layers
     self.seq_layer_forward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters,

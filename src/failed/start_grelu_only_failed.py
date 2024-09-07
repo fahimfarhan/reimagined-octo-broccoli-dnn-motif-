@@ -2,7 +2,6 @@ import random
 
 import grelu
 from grelu.lightning import LightningModel
-from grelu.lightning import PatternMarginalizeDataset
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
@@ -10,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from extensions import *
-from models_cnn_1d import Cnn1dClassifier
+from src.failed.models_cnn_1d import Cnn1dClassifier
 
 # df = pd.read_csv("small_dataset.csv")
 WINDOW = 100
