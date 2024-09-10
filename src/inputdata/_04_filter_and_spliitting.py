@@ -27,9 +27,11 @@ if __name__ == "__main__":
     file_suffix = "_binned"
     for i in range(1, 23):
       # print(f"chrom{i}")
-      tmp = df[df["chrom"] == f"chr{i}"].head(1000)  # limit(1000)
+      tmp_pos = df[(df["chrom"] == f"chr{i}") & (df["label"] == 1)].head(1000)  # limit(1000)
+      tmp_neg = df[(df["chrom"] == f"chr{i}") & (df["label"] == 0)].head(1000)  # limit(1000)
       # print(f"chr{i} -> {tmp['chrom'] = }")
-      list_of_dfs.append(tmp)
+      list_of_dfs.append(tmp_pos)
+      list_of_dfs.append(tmp_neg)
     binned_df = pd.concat(list_of_dfs, axis=0, ignore_index=True)
   else:
     binned_df = df
@@ -44,6 +46,9 @@ if __name__ == "__main__":
 
   train, validate, test = grelu.data.preprocess.split(data=binned_df, train_chroms=train_chroms, val_chroms=val_chroms,
                                                       test_chroms=test_chroms)
+  train = train.sample(frac=1)
+  validate = validate.sample(frac=1)
+  test = test.sample(frac=1)
   print(train.head())
   train.to_csv(f"dataset_{WINDOW}_train{file_suffix}.csv", index=False)
   validate.to_csv(f"dataset_{WINDOW}_validate{file_suffix}.csv", index=False)
