@@ -288,7 +288,7 @@ class MQtlClassifierLightningModule(LightningModule):
 
 
 def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200,
-          dataset_folder_prefix="inputdata/", is_binned=True):
+          dataset_folder_prefix="inputdata/", is_binned=True, is_debug=False):
   # experiment = 'tutorial_3'
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
@@ -304,9 +304,12 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
   if is_binned:
     file_suffix = "_binned"
 
-  train_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train{file_suffix}.csv")
-  val_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate{file_suffix}.csv")
-  test_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test{file_suffix}.csv")
+  train_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train{file_suffix}.csv",
+                              check_if_pipeline_is_ok_by_inserting_debug_motif=is_debug)
+  val_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate{file_suffix}.csv",
+                            check_if_pipeline_is_ok_by_inserting_debug_motif=is_debug)
+  test_dataset = MQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test{file_suffix}.csv",
+                             check_if_pipeline_is_ok_by_inserting_debug_motif=is_debug)
 
   data_module = MqtlDataModule(train_ds=train_dataset, val_ds=val_dataset, test_ds=test_dataset)
 
@@ -335,14 +338,17 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
 
 
 def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4,
-               dataset_folder_prefix="inputdata/", is_binned=True):
+               dataset_folder_prefix="inputdata/", is_binned=True, is_debug=False):
   file_suffix = ""
   if is_binned:
     file_suffix = "_binned"
 
-  train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train{file_suffix}.csv")
-  val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate{file_suffix}.csv")
-  test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test{file_suffix}.csv")
+  train_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_train{file_suffix}.csv",
+                                  check_if_pipeline_is_ok_by_inserting_debug_motif=is_debug)
+  val_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_validate{file_suffix}.csv",
+                                check_if_pipeline_is_ok_by_inserting_debug_motif=is_debug)
+  test_dataset = BertMQTLDataSet(file_path=f"{dataset_folder_prefix}dataset_{WINDOW}_test{file_suffix}.csv",
+                                 check_if_pipeline_is_ok_by_inserting_debug_motif=is_debug)
 
   data_module = MqtlDataModule(
     train_ds=train_dataset,

@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-
+import random
 import numpy as np
 import pandas as pd
 from torch import nn
@@ -19,6 +19,15 @@ logging.basicConfig(level=logging.INFO)  # change to level=logging.DEBUG to prin
 
 DNA_BERT_6 = "zhihan1996/DNA_bert_6"
 
+
+def insert_debug_motif_at_random_position(seq, DEBUG_MOTIF):
+  start = 0
+  end = len(seq)
+  rand_pos = random.randrange(start, (end - len(DEBUG_MOTIF)))
+  random_end = rand_pos + len(DEBUG_MOTIF)
+  output = seq[start: rand_pos] + DEBUG_MOTIF + seq[random_end: end]
+  assert len(seq) == len(output)
+  return output
 
 def one_hot_e(dna_seq: str) -> np.ndarray:
   mydict = {'A': np.asarray([1.0, 0.0, 0.0, 0.0]), 'C': np.asarray([0.0, 1.0, 0.0, 0.0]),
@@ -105,7 +114,10 @@ class FIFOCache:
 
 
 class BertMQTLDataSet(Dataset):
-  def __init__(self, file_path, page_size=1000):
+  def __init__(self, file_path, page_size=10_000,
+               check_if_pipeline_is_ok_by_inserting_debug_motif=False,
+               debug_motif="ATCGTTCA"
+               ):
     dna_bert_name: str = DNA_BERT_6
     self.bert_tokenizer = BertTokenizer.from_pretrained(pretrained_model_name_or_path=dna_bert_name)
 
@@ -113,6 +125,8 @@ class BertMQTLDataSet(Dataset):
     self.page_size = page_size
     self.fifo_cache = FIFOCache(capacity=10)
     self.row_count = get_row_count(file_path)
+    self.check_if_pipeline_is_ok_by_inserting_debug_motif = check_if_pipeline_is_ok_by_inserting_debug_motif
+    self.debug_modif = debug_motif
     pass
 
   def preprocess(self, sequence: str, k=6) -> list[str]:
@@ -142,6 +156,9 @@ class BertMQTLDataSet(Dataset):
 
     seq = paged_data["sequence"].iloc[relative_row]
     label = paged_data["label"].iloc[relative_row]
+
+    if label == 1 and self.check_if_pipeline_is_ok_by_inserting_debug_motif:
+      seq = insert_debug_motif_at_random_position(seq=seq, DEBUG_MOTIF=self.debug_modif)
     # timber.debug(red + f"{label = }")
     tokens: list[str] = self.preprocess(seq)
     # timber.debug(green + f"{tokens = }")
@@ -229,12 +246,16 @@ class MyDataSet(Dataset):
 
 
 class MQTLDataSet(Dataset):
-  def __init__(self, file_path, page_size=1000):
+  def __init__(self, file_path, page_size=10_000,
+               check_if_pipeline_is_ok_by_inserting_debug_motif=False,
+               debug_motif="ATCGTTCA"
+               ):
     self.file_path = file_path
     self.page_size = page_size
     self.fifo_cache = FIFOCache(capacity=10)
     self.row_count = get_row_count(file_path)
-
+    self.check_if_pipeline_is_ok_by_inserting_debug_motif = check_if_pipeline_is_ok_by_inserting_debug_motif
+    self.debug_modif = debug_motif
     pass
 
   def __len__(self):
@@ -260,6 +281,10 @@ class MQTLDataSet(Dataset):
 
     seq = paged_data["sequence"].iloc[relative_row]
     label = paged_data["label"].iloc[relative_row]
+
+    if label == 1 and self.check_if_pipeline_is_ok_by_inserting_debug_motif:
+      seq = insert_debug_motif_at_random_position(seq=seq, DEBUG_MOTIF=self.debug_modif)
+
     seq_rc = reverse_complement_dna_seq(seq)
     ohe_seq = one_hot_e(dna_seq=seq)
     # print(f"shape fafafa = { ohe_seq.shape = }")
