@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 from torch import nn
 import torch
 
@@ -6,7 +7,6 @@ import torch.nn.functional as F
 import mycolors
 from extensions import timber, create_conv_sequence
 from start import start
-
 
 WINDOW = 200
 
@@ -39,14 +39,21 @@ class Cnn1dClassifier(nn.Module):
 
     self.output_layer = nn.Linear(in_features=dnn_size, out_features=1)
     self.output_activation = torch.sigmoid  # not needed if using nn.BCEWithLogitsLoss()
+
+    self.enable_logging = False
+    self.layer_output_logger: dict = {}
     pass
 
   def forward(self, x):
     xf, xb = x[0], x[1]
 
     hf = self.seq_layer_forward(xf)
+    if self.enable_logging:
+      self.layer_output_logger["seq_layer_forward"] = hf
     timber.debug(mycolors.red + f"1{ hf.shape = }")
     hb = self.seq_layer_backward(xb)
+    if self.enable_logging:
+      self.layer_output_logger["seq_layer_backward"] = hb
     timber.debug(mycolors.green + f"2{ hb.shape = }")
 
     h = torch.concatenate(tensors=(hf, hb), dim=2)
@@ -57,13 +64,22 @@ class Cnn1dClassifier(nn.Module):
 
     h = self.dnn(h)
     timber.debug(mycolors.yellow + f"8{ h.shape = } dnn")
+    if self.enable_logging:
+      self.layer_output_logger["dnn"] = h
+
     h = self.dnn_activation(h)
+    if self.enable_logging:
+      self.layer_output_logger["dnn_activation"] = h
     timber.debug(mycolors.blue + f"9{ h.shape = } dnn_activation")
     h = self.dropout(h)
     timber.debug(mycolors.blue + f"10{ h.shape = } dropout")
     h = self.output_layer(h)
+    if self.enable_logging:
+      self.layer_output_logger["output_layer"] = h
     timber.debug(mycolors.blue + f"11{ h.shape = } output_layer")
     h = self.output_activation(h)
+    if self.enable_logging:
+      self.layer_output_logger["output_activation"] = h
     timber.debug(mycolors.blue + f"12{ h.shape = } output_activation")
     return h
 
@@ -86,10 +102,29 @@ seq len 100 -> acc .80, auc 0.90 (dnn_size = 128, k-mer-size = 4, num_filters = 
       Need to consolidate for seq len 400 or 1000
 """
 
+
+def visualize_layer_output_activations(layer_output, title="Activation Map"):
+  # Assuming we want to visualize the activations of the first sample
+  activation_map = layer_output.detach().cpu().numpy()[0]
+  plt.imshow(activation_map, aspect='auto', cmap='hot')
+  plt.colorbar()
+  plt.title(title)
+  plt.show()
+
+
 if __name__ == '__main__':
   simple_cnn = Cnn1dClassifier(seq_len=WINDOW)
+  simple_cnn.enable_logging = True
+
   start(classifier_model=simple_cnn, model_save_path=simple_cnn.file_name, WINDOW=WINDOW,
         dataset_folder_prefix="inputdata/", is_debug=True)
+
+  for key, value in simple_cnn.layer_output_logger.items():
+    print(f"{key = }, f{value = }")
+    try:
+      visualize_layer_output_activations(value, title=key)
+    except Exception as x:
+      print(x)
   pass
 
 """
