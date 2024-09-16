@@ -1,4 +1,5 @@
 accelerate  # required by HayenaDNA
+datasets
 pandas
 polars
 numpy

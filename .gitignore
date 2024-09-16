@@ -178,5 +178,6 @@ src/lightning_logs/
 !/src/inputdata/_03_visualize_positive_and_negative_seqs.py
 !/src/inputdata/_04_filter_and_spliitting.py
 !/src/inputdata/_05_mqtl_dataset.py
+!/src/inputdata/_06_uploaddataset_to_hugging_face.py
 !/src/inputdata/_10_convert_tsv_into_sqlite.py
 !/src/inputdata/_11_sql_commands.sql

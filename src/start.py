@@ -288,7 +288,7 @@ class MQtlClassifierLightningModule(LightningModule):
 
 
 def start(classifier_model, model_save_path, is_attention_model=False, m_optimizer=torch.optim.Adam, WINDOW=200,
-          dataset_folder_prefix="inputdata/", is_binned=True, is_debug=False):
+          dataset_folder_prefix="inputdata/", is_binned=True, is_debug=False, max_epochs=10):
   # experiment = 'tutorial_3'
   # if not os.path.exists(experiment):
   #   os.makedirs(experiment)
@@ -323,7 +323,7 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
 
   classifier_module = classifier_module  # .double()
 
-  trainer = Trainer(max_epochs=5, precision="32")
+  trainer = Trainer(max_epochs=max_epochs, precision="32")
   trainer.fit(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
@@ -338,7 +338,7 @@ def start(classifier_model, model_save_path, is_attention_model=False, m_optimiz
 
 
 def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_size=4,
-               dataset_folder_prefix="inputdata/", is_binned=True, is_debug=False):
+               dataset_folder_prefix="inputdata/", is_binned=True, is_debug=False, max_epochs=10):
   file_suffix = ""
   if is_binned:
     file_suffix = "_binned"
@@ -367,7 +367,7 @@ def start_bert(classifier_model, model_save_path, criterion, WINDOW=200, batch_s
 
   classifier_module = classifier_module  # .double()
 
-  trainer = Trainer(max_epochs=10, precision="32")
+  trainer = Trainer(max_epochs=max_epochs, precision="32")
   trainer.fit(model=classifier_module, datamodule=data_module)
   timber.info("\n\n")
   trainer.test(model=classifier_module, datamodule=data_module)
