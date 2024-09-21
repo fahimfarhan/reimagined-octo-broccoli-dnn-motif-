@@ -2,5 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/huggingface-mqtl-classification-simple-cnn-1d" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/huggingface-mqtl-classification-using-dnabert-6" vcs="Git" />
   </component>
 </project>

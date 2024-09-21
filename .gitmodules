@@ -1,3 +1,9 @@
 [submodule "src/huggingface-mqtl-classification-using-dnabert-6"]
 	path = src/huggingface-mqtl-classification-using-dnabert-6
 	url = https://huggingface.co/spaces/fahimfarhan/mqtl-classification-using-dnabert-6
+[submodule "huggingface-mqtl-classification-simple-cnn-1d"]
+	path = huggingface-mqtl-classification-simple-cnn-1d
+	url = https://huggingface.co/spaces/fahimfarhan/mqtl-classification-simple-cnn-1d
+[submodule "src/huggingface-mqtl-classification-simple-cnn-1d"]
+	path = src/huggingface-mqtl-classification-simple-cnn-1d
+	url = https://huggingface.co/spaces/fahimfarhan/mqtl-classification-simple-cnn-1d

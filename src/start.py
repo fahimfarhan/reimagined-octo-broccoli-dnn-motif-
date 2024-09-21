@@ -254,7 +254,7 @@ class MQtlClassifierLightningModule(LightningModule):
     x = [i.float() for i in x]
 
     preds = self.forward(x)
-    loss = 0  # self.criterion(preds, y)
+    loss = self.criterion(preds, y)
     self.log("valid_loss", loss)
     # calculate the scores start
     self.validate_metrics.update_on_each_step(batch_predicted_labels=preds, batch_actual_labels=y)

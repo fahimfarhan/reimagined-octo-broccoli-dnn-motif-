@@ -8,8 +8,6 @@ import mycolors
 from extensions import timber, create_conv_sequence
 from start import start
 
-WINDOW = 200
-
 
 class Cnn1dClassifier(nn.Module):
   def __init__(self,
@@ -22,7 +20,7 @@ class Cnn1dClassifier(nn.Module):
                conv_seq_list_size=3,
                *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.file_name = f"weights_Cnn1dClassifier_seqlen_{WINDOW}.pth"
+    self.file_name = f"weights_Cnn1dClassifier_seqlen_{seq_len}.pth"
 
     self.seq_layer_forward = create_conv_sequence(in_channel_num_of_nucleotides, num_filters,
                                                   kernel_size_k_mer_motif)
@@ -113,6 +111,7 @@ def visualize_layer_output_activations(layer_output, title="Activation Map"):
 
 
 if __name__ == '__main__':
+  WINDOW = 200
   simple_cnn = Cnn1dClassifier(seq_len=WINDOW)
   simple_cnn.enable_logging = True
 
