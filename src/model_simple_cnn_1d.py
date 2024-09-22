@@ -111,7 +111,7 @@ def visualize_layer_output_activations(layer_output, title="Activation Map"):
 
 
 if __name__ == '__main__':
-  WINDOW = 200
+  WINDOW = 4000
   simple_cnn = Cnn1dClassifier(seq_len=WINDOW)
   simple_cnn.enable_logging = True
 
