@@ -32,3 +32,4 @@ gReLU # luckily now available in pip!
 torchmetrics
 transformers
 huggingface-hub
+python-dotenv
