@@ -1,8 +1,8 @@
 ---
-title: Mqtl Classification Simple Cnn 1d
+title: Some title
 emoji: 👁
-colorFrom: gray
-colorTo: red
+colorFrom: blue
+colorTo: white
 sdk: docker
 pinned: false
 license: mit

@@ -219,17 +219,17 @@ class MqtlDataModule(LightningDataModule):
     self.batch_size = batch_size
     self.train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=False,
                                    # collate_fn=collate_fn,
-                                   num_workers=15,
+                                   num_workers=1,
                                    # persistent_workers=True
                                    )
     self.validate_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False,
                                       # collate_fn=collate_fn,
-                                      num_workers=15,
+                                      num_workers=1,
                                       # persistent_workers=True
                                       )
     self.test_loader = DataLoader(test_ds, batch_size=self.batch_size, shuffle=False,
                                   # collate_fn=collate_fn,
-                                  num_workers=15,
+                                  num_workers=1,
                                   # persistent_workers=True
                                   )
     pass
