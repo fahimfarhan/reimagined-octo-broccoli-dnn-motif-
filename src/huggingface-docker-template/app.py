@@ -419,7 +419,8 @@ def start(classifier_model, model_save_path,  m_optimizer=torch.optim.Adam, WIND
   )
 
   # reload
-  classifier_model = classifier_model.from_pretrained(f"my-awesome-model-{WINDOW}")
+  # classifier_model = classifier_model.from_pretrained(f"fahimfarhan/{classifier_model.model_repository_name}")
+  # classifier_model = classifier_model.from_pretrained(model_subdirectory)
 
   pass
 
