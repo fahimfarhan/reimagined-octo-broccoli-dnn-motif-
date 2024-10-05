@@ -7,3 +7,6 @@
 [submodule "src/huggingface-mqtl-classification-simple-cnn-1d"]
 	path = src/huggingface-mqtl-classification-simple-cnn-1d
 	url = https://huggingface.co/spaces/fahimfarhan/mqtl-classification-simple-cnn-1d
+[submodule "src/huggingface-mqtl-classification-hyena-dna"]
+	path = src/huggingface-mqtl-classification-hyena-dna
+	url = https://huggingface.co/spaces/fahimfarhan/hyenadna-sm-32k-mqtl-classifier-space
